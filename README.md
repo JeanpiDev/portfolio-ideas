@@ -1,6 +1,6 @@
 # Portfolio Ideas
 
-Four working portfolio templates for developers who want their site to **show** their craft instead of
+Five working portfolio templates for developers who want their site to **show** their craft instead of
 listing it, each with an AI assistant built in. Built with Astro and Tailwind CSS, accessible by default, and
 usable with or without an API key.
 
@@ -13,6 +13,7 @@ and ship it.
 | 02 | [`ui-playground`](templates/ui-playground) | The landing page is a table of real UI components you can throw and stack with physics. | "The inspector": drop a component on the lens and it tells you its story, its states and its code. |
 | 03 | [`generative-ui`](templates/generative-ui) | Chat-first landing. Answers arrive as real components: carousels, timelines, contact cards. | The whole page. Every answer cites its sources. |
 | 04 | [`chat-playground`](templates/chat-playground) | A conversational hero for people in a hurry, a playground for people who want to explore. | The same assistant answers in the chat and in the playground, and can send a component from one to the other. |
+| 05 | [`editorial-terminal`](templates/editorial-terminal) | A classic one-page portfolio with editorial type and a terminal-prompt motif. The simplest one to adapt. | An assistant modal with streaming answers, conversational memory and a one-click "recruiter mode" pitch. |
 
 ## Quick start
 
