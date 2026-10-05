@@ -1,0 +1,22 @@
+---
+// Root: redirect to the default locale (/en/). Spanish browsers go to /es/.
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="refresh" content="0; url=/en/" />
+    <link rel="canonical" href="/en/" />
+    <title>Alex Moreno</title>
+    <script is:inline>
+      (function () {
+        var l = (navigator.language || 'en').toLowerCase();
+        location.replace(l.indexOf('es') === 0 ? '/es/' : '/en/');
+      })();
+    </script>
+  </head>
+  <body>
+    <p><a href="/en/">Continue to the site</a></p>
+  </body>
+</html>

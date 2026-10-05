@@ -1,0 +1,19 @@
+---
+import { profile, type Lang } from '../data/profile';
+import { useTranslations } from '../i18n/ui';
+
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+const t = useTranslations(lang);
+---
+
+<footer class="border-t border-border py-6">
+  <div class="wrap flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted">
+    <span class="grow">{profile.location[lang]} · {t('footer.fictional')}</span>
+    <a href={profile.links.linkedin} class="flex min-h-11 items-center">LinkedIn</a>
+    <a href={profile.links.github} class="flex min-h-11 items-center">GitHub</a>
+    <span>{t('footer.built')}</span>
+  </div>
+</footer>

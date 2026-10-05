@@ -1,0 +1,49 @@
+---
+/**
+ * A component the assistant can show inside an answer (project card or piece).
+ * Rendered server-side once per id inside <template> tags; the chat island clones
+ * them, so the AI only ever sends an id, never markup.
+ */
+import { getPiece, getProject, pieces, type Lang } from '../data/profile';
+import { useTranslations } from '../i18n/ui';
+import PieceVisual from './PieceVisual.astro';
+
+interface Props {
+  name: 'project' | 'piece';
+  id: string;
+  lang: Lang;
+}
+const { name, id, lang } = Astro.props;
+const t = useTranslations(lang);
+
+const project = name === 'project' ? getProject(id) : undefined;
+const piece = name === 'piece' ? getPiece(id) : pieces.find((p) => p.id === id) ?? pieces.find((p) => p.projectId === id);
+const title = project ? project.name[lang] : piece?.name[lang];
+const tags = project ? project.tags.join(' · ') : piece?.projectId ? getProject(piece.projectId)?.name[lang] : '';
+const href = project ? `#project-${project.id}` : `#piece-${piece?.id}`;
+---
+
+<div class="flex flex-col gap-3">
+  <figure class="proj-card">
+    {piece && <div class="proj-card__visual"><PieceVisual visual={piece.visual} lang={lang} wide /></div>}
+    <figcaption class="proj-card__cap">
+      <span class="flex grow flex-col">
+        <span class="proj-card__name">{title}</span>
+        {tags && <span class="proj-card__tags">{tags}</span>}
+      </span>
+      <a href={href} class="flex min-h-11 items-center text-sm font-semibold underline">
+        {t('comp.viewProject')}<span class="sr-only">: {title}</span>
+      </a>
+    </figcaption>
+  </figure>
+  {
+    piece && (
+      <a href={`#piece-${piece.id}`} class="btn btn-ai-outline self-start" data-send={piece.id}>
+        {t('comp.send')}
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+          <path d="M12 5v14M6 13l6 6 6-6" />
+        </svg>
+      </a>
+    )
+  }
+</div>

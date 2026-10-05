@@ -1,0 +1,113 @@
+---
+import { experience, profile, skills, type Lang } from '../data/profile';
+import { clientStrings, useTranslations } from '../i18n/ui';
+import Spark from './Spark.astro';
+
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+const t = useTranslations(lang);
+---
+
+<section id="experience" aria-labelledby="exp-title" class="py-20">
+  <div class="wrap flex flex-wrap items-stretch gap-8">
+    <div class="flex min-w-0 flex-col gap-4" style="flex: 2 1 520px">
+      <p class="eyebrow">{t('exp.eyebrow')}</p>
+      <h2 id="exp-title" class="display m-0 mb-2 text-4xl leading-tight md:text-5xl">{t('exp.title')}</h2>
+      <ol class="m-0 flex list-none flex-col gap-4 p-0">
+        {
+          experience.map((j) => (
+            <li id={`exp-${j.id}`} class="flex flex-wrap items-baseline gap-x-6 gap-y-1 border-b border-border pb-4">
+              <span class="w-40 font-mono text-[13px] text-muted">{j.period[lang]}</span>
+              <span class="flex min-w-0 grow flex-col" style="flex-basis: 240px">
+                <span class="display text-2xl">{j.role[lang]}</span>
+                <span class="text-[15px] text-muted">
+                  {j.company} · {j.summary[lang]}
+                </span>
+              </span>
+              <span class="text-sm text-muted">{j.stack.join(' · ')}</span>
+            </li>
+          ))
+        }
+      </ol>
+      <h3 id="skills" class="display m-0 mt-6 text-2xl">{t('skills.title')}</h3>
+      <dl class="m-0 grid gap-4" style="grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr))">
+        {
+          skills.map((g) => (
+            <div>
+              <dt class="font-mono text-[13px] text-muted uppercase">{g.label[lang]}</dt>
+              <dd class="m-0 text-[15px]">{g.items.join(' · ')}</dd>
+            </div>
+          ))
+        }
+      </dl>
+    </div>
+
+    <div id="contact" class="stage flex flex-col justify-center gap-3.5 rounded-xl p-6 md:p-8" style="flex: 1 1 300px" tabindex="-1">
+      <p class="m-0 flex items-center gap-2 font-mono text-xs tracking-widest text-accent-ink uppercase" data-requires-js>
+        <Spark size={14} />
+        {t('contact.eyebrow')}
+      </p>
+      <h3 class="display m-0 text-3xl leading-tight">{t('contact.title')}</h3>
+      <p class="m-0 text-[15px] text-muted">{t('contact.lead')} {profile.availability[lang]}</p>
+      <recruiter-pitch data-lang={lang} data-t={JSON.stringify(clientStrings(lang))} data-requires-js class="flex flex-col gap-3">
+        <button type="button" class="btn btn-ai min-h-12 w-full" data-pitch>
+          <Spark size={16} />
+          {t('contact.pitch')}
+        </button>
+        <div class="flex flex-col gap-3" data-pitch-answer></div>
+        <div class="sr-only" aria-live="polite" data-pitch-live></div>
+      </recruiter-pitch>
+      <a href={`mailto:${profile.email}`} class="btn btn-ink min-h-12 w-full">{t('contact.email')}</a>
+      <a href={`mailto:${profile.email}`} class="flex min-h-11 items-center justify-center font-semibold">{profile.email}</a>
+      <div class="flex justify-center gap-4">
+        <a href={profile.links.linkedin} class="flex min-h-11 items-center">LinkedIn</a>
+        <a href={profile.links.github} class="flex min-h-11 items-center">GitHub</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  import { AnswerView, ask, type Strings } from '../scripts/assistant';
+
+  // Recruiter mode: a predefined "pitch" prompt (mode: 'recruiter'), answered inline.
+  class RecruiterPitch extends HTMLElement {
+    private controller: AbortController | null = null;
+    connectedCallback() {
+      const t: Strings = JSON.parse(this.dataset.t!);
+      const btn = this.querySelector<HTMLButtonElement>('[data-pitch]')!;
+      const out = this.querySelector<HTMLElement>('[data-pitch-answer]')!;
+      const live = this.querySelector<HTMLElement>('[data-pitch-live]')!;
+      const run = async (view: AnswerView) => {
+        this.controller = new AbortController();
+        btn.disabled = true;
+        await ask({
+          payload: { message: t['contact.pitchPrompt'], lang: this.dataset.lang as 'en' | 'es', mode: 'recruiter' },
+          view,
+          live,
+          t,
+          signal: this.controller.signal,
+          onRetry: () => {
+            if (this.controller) return;
+            view.reset();
+            run(view);
+          },
+        });
+        this.controller = null;
+        btn.disabled = false;
+      };
+      btn.addEventListener('click', () => {
+        if (this.controller) return;
+        const label = document.createElement('p');
+        label.className = 'msg-user m-0 fade-in';
+        label.textContent = t['contact.pitchShown'];
+        const view = new AnswerView(t);
+        out.replaceChildren(label, view.root);
+        run(view);
+      });
+    }
+  }
+  customElements.define('recruiter-pitch', RecruiterPitch);
+</script>

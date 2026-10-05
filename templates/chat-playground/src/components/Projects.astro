@@ -1,0 +1,61 @@
+---
+import { pieces, projects, type Lang } from '../data/profile';
+import { useTranslations } from '../i18n/ui';
+
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+const t = useTranslations(lang);
+---
+
+<!-- Static on purpose: the projects work with no AI, no JS and no API key. -->
+<section id="projects" aria-labelledby="projects-title" class="pt-16 pb-24">
+  <div class="wrap flex flex-col gap-8">
+    <div class="flex flex-wrap items-end gap-6">
+      <div class="flex grow flex-col gap-2">
+        <p class="eyebrow">{t('projects.eyebrow')}</p>
+        <h2 id="projects-title" class="display m-0 text-4xl leading-tight md:text-5xl">{t('projects.title')}</h2>
+      </div>
+      <a href="#playground" class="flex min-h-11 items-center text-[15px] text-muted">{t('projects.toPlay')}</a>
+    </div>
+    <ul class="m-0 grid list-none gap-4 p-0" style="grid-template-columns: repeat(auto-fill, minmax(min(100%, 290px), 1fr))">
+      {
+        projects.map((p) => {
+          const piece = pieces.find((pc) => pc.id === p.id);
+          return (
+            <li id={`project-${p.id}`} class="project-card" tabindex="-1">
+              <span class="font-mono text-xs text-muted">{p.kind[lang]}</span>
+              <h3 class="display m-0 text-2xl leading-tight">{p.name[lang]}</h3>
+              <p class="m-0 grow text-[15px] text-muted">{p.description[lang]}</p>
+              <p class="m-0 text-[13px] text-muted">
+                {t('projects.result')}: <span class="font-mono">{p.result[lang]}</span>
+              </p>
+              <span class="font-mono text-xs text-muted">{p.tags.join(' · ')}</span>
+              <span class="flex flex-wrap gap-x-4">
+                {p.repo && (
+                  <a href={p.repo} class="flex min-h-11 items-center text-[15px] font-semibold">
+                    {t('comp.code')}
+                    <span class="sr-only">: {p.name[lang]}</span>
+                  </a>
+                )}
+                {p.live && (
+                  <a href={p.live} class="flex min-h-11 items-center text-[15px] font-semibold">
+                    {t('comp.live')}
+                    <span class="sr-only">: {p.name[lang]}</span>
+                  </a>
+                )}
+                {piece && (
+                  <a href={`#piece-${piece.id}`} class="flex min-h-11 items-center text-[15px] font-semibold">
+                    {t('projects.onTable')}
+                    <span class="sr-only">: {p.name[lang]}</span>
+                  </a>
+                )}
+              </span>
+            </li>
+          );
+        })
+      }
+    </ul>
+  </div>
+</section>

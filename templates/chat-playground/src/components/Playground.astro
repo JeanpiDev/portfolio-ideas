@@ -1,0 +1,166 @@
+---
+/**
+ * The Playground: a table of real components from the projects, always in the
+ * OPPOSITE theme of the page (.stage), plus the AI inspector.
+ *
+ * Progressive enhancement:
+ *  1. No JS: a static grid of pieces (the inspector shows one piece, all panels visible).
+ *  2. JS: roving tabindex, Enter inspect, Space pick up/drop, arrows move 16px
+ *     (Shift: 64px), Esc cancel, Tidy/Scatter, gravity switch, live announcements.
+ *  3. JS + motion allowed + ≥768px + gravity on: matter-js moves the same DOM nodes.
+ */
+import { getProject, pieces, type Lang } from '../data/profile';
+import { clientStrings, useTranslations } from '../i18n/ui';
+import PieceVisual from './PieceVisual.astro';
+import Spark from './Spark.astro';
+import InspectorPanels from './InspectorPanels.astro';
+
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+const t = useTranslations(lang);
+const first = pieces.find((p) => p.id === 'loan-simulator') ?? pieces[0];
+const firstProject = first.projectId ? getProject(first.projectId) : undefined;
+---
+
+<section id="playground" aria-labelledby="play-title" class="stage playground">
+  <div class="play-grid">
+    <div class="play-main" data-playground data-lang={lang} data-t={JSON.stringify(clientStrings(lang))}>
+      <div class="flex flex-col gap-3">
+        <p class="eyebrow">{t('play.eyebrow')}</p>
+        <h2 id="play-title" class="display m-0 text-5xl leading-none md:text-7xl">
+          {t('play.title1')} <span class="font-normal italic">{t('play.title2')}</span>
+        </h2>
+        <p class="m-0 max-w-lg text-[17px] text-muted">{t('play.lead')}</p>
+      </div>
+
+      <div role="toolbar" aria-label={t('play.toolbar')} class="flex flex-wrap items-center gap-2" data-requires-js data-toolbar>
+        <button type="button" role="switch" aria-checked="true" class="switch" data-gravity>
+          <span class="switch__track" aria-hidden="true"><span class="switch__knob"></span></span>
+          {t('play.gravity')}
+        </button>
+        <button type="button" class="btn bg-surface" data-tidy>{t('play.tidy')}</button>
+        <button type="button" class="btn bg-surface" data-scatter>{t('play.scatter')}</button>
+        <div class="seg" role="group" aria-labelledby="motion-label">
+          <span id="motion-label" class="seg__label">{t('play.motion')}</span>
+          <button type="button" aria-pressed="true" data-motion="full">{t('play.motionFull')}</button>
+          <button type="button" aria-pressed="false" data-motion="reduced">{t('play.motionReduced')}</button>
+        </div>
+      </div>
+      <p class="m-0 text-[13px] text-muted" data-requires-js>{t('play.keys')}</p>
+
+      <ul class="pg-table" aria-label={t('play.table')} data-table>
+        {
+          pieces.map((p) => (
+            <li
+              class="piece-slot"
+              id={`piece-${p.id}`}
+              data-piece={p.id}
+              data-name={p.name[lang]}
+              data-project={p.projectId}
+              data-rot={p.rotate}
+              style={`--rot: ${p.rotate}deg`}
+              hidden={!p.onTable}
+            >
+              <div class="piece" role="button" aria-label={p.name[lang]} aria-describedby="piece-hint">
+                <div inert>
+                  <PieceVisual visual={p.visual} lang={lang} />
+                </div>
+                <span class="piece__name" aria-hidden="true">
+                  {p.name[lang]}
+                </span>
+              </div>
+              <div class="piece-meta">
+                <span class="piece-flag" data-flag hidden>
+                  <Spark size={12} />
+                  {t('play.fromChat')}
+                </span>
+                <div class="piece-tools" data-requires-js>
+                  <button type="button" data-act="inspect">
+                    {t('play.inspect')}
+                    <span class="sr-only">: {p.name[lang]}</span>
+                  </button>
+                  <button type="button" class="secondary" data-act="pick">
+                    {t('play.pickUp')}
+                    <span class="sr-only">: {p.name[lang]}</span>
+                  </button>
+                </div>
+              </div>
+            </li>
+          ))
+        }
+      </ul>
+      <p id="piece-hint" class="sr-only">{t('play.pieceHint')}</p>
+
+      <div class="flex flex-wrap items-center gap-2" data-requires-js data-tray>
+        <span id="tray-label" class="mr-2 text-[15px] font-bold">{t('play.add')}</span>
+        {
+          pieces
+            .filter((p) => !p.onTable)
+            .map((p) => (
+              <button type="button" class="btn bg-surface" data-add={p.id} aria-describedby="tray-label">
+                {p.name[lang]}
+              </button>
+            ))
+        }
+      </div>
+      <div class="sr-only" aria-live="polite" data-play-live></div>
+    </div>
+
+    <aside class="play-aside" aria-labelledby="insp-title" data-inspector data-lang={lang} data-t={JSON.stringify(clientStrings(lang))}>
+      <div class="flex items-center gap-2">
+        <Spark size={18} />
+        <h2 id="insp-title" class="m-0 font-mono text-[13px] font-semibold tracking-widest text-accent-ink uppercase">{t('insp.title')}</h2>
+      </div>
+      <div class="dropzone" data-dropzone data-requires-js>
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+          <circle cx="10" cy="10" r="6"></circle><path d="M15 15l6 6"></path>
+        </svg>
+        <span class="text-[15px] font-bold">{t('insp.drop')}</span>
+        <span class="text-[13px]">{t('insp.dropHint')}</span>
+      </div>
+      <div class="flex flex-col gap-1">
+        <span class="font-mono text-xs text-muted">{t('insp.inspecting')}</span>
+        <h3 class="display m-0 text-[28px] leading-tight" tabindex="-1" data-insp-name>{first.name[lang]}</h3>
+        <span class="text-sm text-muted" data-insp-from>{firstProject ? firstProject.name[lang] : ''}</span>
+      </div>
+
+      <div role="tablist" aria-label={t('insp.tabs')} class="tablist" data-requires-js>
+        <button type="button" role="tab" id="tab-story" aria-controls="panel-story" aria-selected="true">{t('insp.story')}</button>
+        <button type="button" role="tab" id="tab-states" aria-controls="panel-states" aria-selected="false" tabindex="-1">{t('insp.states')}</button>
+        <button type="button" role="tab" id="tab-code" aria-controls="panel-code" aria-selected="false" tabindex="-1">{t('insp.code')}</button>
+      </div>
+      <div data-insp-panels>
+        <InspectorPanels piece={first} lang={lang} />
+      </div>
+      {pieces.map((p) => (
+        <template id={`tpl-insp-${p.id}`}>
+          <InspectorPanels piece={p} lang={lang} />
+        </template>
+      ))}
+
+      <form class="m-0 flex flex-col gap-2" data-insp-form data-requires-js novalidate>
+        <label for="insp-input" class="flex items-center gap-2 text-sm font-semibold">
+          <Spark size={14} />
+          {t('insp.ask')}
+        </label>
+        <div class="ask-box" style="box-shadow: none">
+          <input id="insp-input" type="text" maxlength="500" autocomplete="off" placeholder={t('insp.placeholder')} aria-describedby="insp-disclaimer" />
+          <button type="submit" class="btn btn-ai" data-submit>{t('ask.button')}</button>
+        </div>
+        <span id="insp-disclaimer" class="text-[13px] text-muted">{t('ask.disclaimer')}</span>
+      </form>
+      <div class="flex flex-col gap-3" data-insp-answer></div>
+      <div class="sr-only" aria-live="polite" data-insp-live></div>
+      <a href={firstProject ? `#project-${firstProject.id}` : '#projects'} class="btn" data-insp-link>{t('insp.caseStudy')}</a>
+    </aside>
+  </div>
+</section>
+
+<script>
+  import { initPlayground } from '../scripts/playground';
+  import { initInspector } from '../scripts/inspector';
+  const inspector = initInspector(document.querySelector<HTMLElement>('[data-inspector]')!);
+  initPlayground(document.querySelector<HTMLElement>('[data-playground]')!, inspector);
+</script>

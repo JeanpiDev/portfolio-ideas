@@ -1,0 +1,45 @@
+---
+import '@fontsource-variable/bricolage-grotesque';
+import '@fontsource-variable/figtree';
+import '@fontsource-variable/jetbrains-mono';
+import '../styles/global.css';
+import type { Lang } from '../data/profile';
+import { useTranslations } from '../i18n/ui';
+
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+const t = useTranslations(lang);
+const other: Lang = lang === 'en' ? 'es' : 'en';
+const canonical = new URL(`/${lang}/`, Astro.site);
+---
+
+<!doctype html>
+<html lang={lang}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{t('meta.title')}</title>
+    <meta name="description" content={t('meta.description')} />
+    <link rel="canonical" href={canonical} />
+    <link rel="alternate" hreflang={other} href={new URL(`/${other}/`, Astro.site)} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="theme-color" content="#0f1012" />
+    <!-- No-flash theme + motion preference + "JS is available" flag. -->
+    <script is:inline>
+      (function () {
+        var d = document.documentElement;
+        d.classList.add('js');
+        try {
+          if (localStorage.getItem('theme') === 'light') d.classList.add('light');
+          if (localStorage.getItem('motion') === 'reduced') d.classList.add('reduce-motion');
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body id="top">
+    <a class="skip-link" href="#main">{t('skip')}</a>
+    <slot />
+  </body>
+</html>

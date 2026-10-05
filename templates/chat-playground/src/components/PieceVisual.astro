@@ -1,0 +1,135 @@
+---
+/**
+ * Draws a piece with plain HTML/CSS (no images). Shared by the playground table,
+ * the sample answer and the components the assistant shows in its answers.
+ * The drawing is decorative (aria-hidden); the surrounding element carries the name.
+ */
+import type { Lang, Piece } from '../data/profile';
+import { useTranslations } from '../i18n/ui';
+import Spark from './Spark.astro';
+
+interface Props {
+  visual: Piece['visual'];
+  lang: Lang;
+  wide?: boolean;
+}
+const { visual, lang, wide = false } = Astro.props;
+const t = useTranslations(lang);
+const es = lang === 'es';
+---
+
+<div aria-hidden="true" class="flex flex-col gap-2" style={wide ? '' : 'width: min(240px, 64vw)'}>
+  {
+    visual === 'slider' && (
+      <>
+        <span class="flex justify-between gap-2">
+          <span class="mini-label">{t('sample.amount')}</span>
+          <span class="mini-tag">{t('sample.demoData')}</span>
+        </span>
+        <span class="mini-amount">$24,000</span>
+        <span class="mini-track block">
+          <span class="mini-track__fill block" style="width: 62%" />
+          <span class="mini-track__thumb block" style="left: 58%" />
+        </span>
+      </>
+    )
+  }
+  {
+    visual === 'queue' && (
+      <span class="flex flex-col gap-2 rounded-md bg-text p-3 text-bg" style="font-size: 13px">
+        <span class="font-mono" style="font-size: 12px">
+          {es ? 'cola en vivo · WebSockets' : 'live queue · WebSockets'}
+        </span>
+        <span class="flex justify-between gap-3">
+          <span>report_0412.csv</span>
+          <span>{es ? 'en curso' : 'running'}</span>
+        </span>
+        <span class="flex justify-between gap-3">
+          <span>export_q3.zip</span>
+          <span>{es ? 'en cola' : 'queued'}</span>
+        </span>
+      </span>
+    )
+  }
+  {
+    visual === 'filters' && (
+      <span class="flex flex-wrap gap-1.5" style="font-size: 13px">
+        <span class="rounded-full bg-text px-3 py-1 font-semibold text-bg">{es ? 'Abierto ahora' : 'Open now'}</span>
+        <span class="rounded-full border border-border-strong px-3 py-1">{es ? 'Cerca' : 'Nearby'}</span>
+        <span class="rounded-full border border-border-strong px-3 py-1">{es ? 'Accesible' : 'Step-free'}</span>
+        <span class="mini-tag w-full">{es ? '12 resultados' : '12 results'}</span>
+      </span>
+    )
+  }
+  {
+    visual === 'stream' && (
+      <>
+        <span class="flex items-center gap-1.5 font-mono text-accent-ink" style="font-size: 12px">
+          <Spark size={12} />
+          {es ? 'respuesta IA · streaming' : 'AI answer · streaming'}
+        </span>
+        <span class="mini-track block" style="background: var(--border)">
+          <span class="block h-full rounded" style="width: 70%; background: var(--accent)" />
+        </span>
+        <span class="mini-label">{t('ask.writing')}</span>
+      </>
+    )
+  }
+  {
+    visual === 'switch' && (
+      <span class="flex items-center gap-3">
+        <span class="relative block rounded-full bg-text" style="width: 52px; height: 30px">
+          <span class="absolute block rounded-full bg-surface" style="right: 3px; top: 3px; width: 24px; height: 24px" />
+        </span>
+        <span class="font-semibold" style="font-size: 15px">
+          {es ? 'Modo oscuro' : 'Dark mode'}
+        </span>
+      </span>
+    )
+  }
+  {
+    visual === 'otp' && (
+      <>
+        <span class="font-semibold" style="font-size: 13px">
+          {es ? 'Código de verificación' : 'Verification code'}
+        </span>
+        <span class="flex gap-1.5">
+          {['4', '8', '1', '', '', ''].map((d, i) => (
+            <span
+              class="flex items-center justify-center rounded-sm bg-bg-soft font-mono font-semibold"
+              style={`width: 30px; height: 40px; font-size: 16px; border: ${i === 3 ? '2px solid var(--text)' : '1px solid var(--border-strong)'}`}
+            >
+              {d}
+            </span>
+          ))}
+        </span>
+      </>
+    )
+  }
+  {
+    visual === 'button' && (
+      <span class="flex min-h-14 items-center justify-center rounded-lg bg-text px-6 font-bold text-bg" style="font-size: 18px">
+        {es ? 'Contrátame' : 'Hire me'}
+      </span>
+    )
+  }
+  {
+    visual === 'toast' && (
+      <span class="flex items-center gap-3 rounded-md bg-text px-3 py-2.5 text-bg" style="font-size: 14px">
+        <span class="font-bold">✓</span>
+        <span>{es ? 'Trabajo terminado.' : 'Job finished.'}</span>
+      </span>
+    )
+  }
+  {
+    visual === 'stepper' && (
+      <span class="flex items-center gap-2" style="font-size: 13px">
+        <span class="flex h-7 w-7 items-center justify-center rounded-full bg-text font-bold text-bg">1</span>
+        <span class="block h-0.5 w-5 bg-text" />
+        <span class="flex h-7 w-7 items-center justify-center rounded-full border-2 border-text font-bold">2</span>
+        <span class="block h-0.5 w-5 bg-border-strong" />
+        <span class="flex h-7 w-7 items-center justify-center rounded-full border border-border-strong text-muted">3</span>
+      </span>
+    )
+  }
+</div>

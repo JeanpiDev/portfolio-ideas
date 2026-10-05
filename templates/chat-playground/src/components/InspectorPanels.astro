@@ -1,0 +1,36 @@
+---
+/** Story / States / Code panels for one piece (static content from profile.ts). */
+import { getProject, type Lang, type Piece } from '../data/profile';
+import { useTranslations } from '../i18n/ui';
+
+interface Props {
+  piece: Piece;
+  lang: Lang;
+}
+const { piece, lang } = Astro.props;
+const t = useTranslations(lang);
+const project = piece.projectId ? getProject(piece.projectId) : undefined;
+const label = `Playground · ${piece.name[lang]}`;
+---
+
+<div class="flex flex-col gap-3">
+  <div role="tabpanel" id="panel-story" aria-labelledby="tab-story" tabindex="0" class="tabpanel">
+    <h4 class="m-0 text-sm font-bold">{t('insp.story')}</h4>
+    <p class="m-0 text-[15px]">
+      {piece.story[lang]}
+      <a href={`#piece-${piece.id}`} class="cite" aria-label={t('ask.sourceLabel', { n: 1, label })}>[1]</a>
+    </p>
+    <p class="m-0 text-sm text-muted">{piece.decision[lang]}</p>
+    <span class="text-[13px] text-muted">{t('insp.source')}: {label}{project ? ` · ${project.name[lang]}` : ''}</span>
+  </div>
+  <div role="tabpanel" id="panel-states" aria-labelledby="tab-states" tabindex="0" class="tabpanel">
+    <h4 class="m-0 text-sm font-bold">{t('insp.states')}</h4>
+    <ul class="m-0 flex list-none flex-wrap gap-2 p-0">
+      {piece.states.map((s) => <li class="rounded-full border border-border-strong px-3 py-1 text-sm">{s[lang]}</li>)}
+    </ul>
+  </div>
+  <div role="tabpanel" id="panel-code" aria-labelledby="tab-code" tabindex="0" class="tabpanel">
+    <h4 class="m-0 text-sm font-bold">{t('insp.code')}</h4>
+    <pre><code>{piece.code}</code></pre>
+  </div>
+</div>

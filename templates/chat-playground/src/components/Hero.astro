@@ -1,0 +1,206 @@
+---
+import { profile, type Lang } from '../data/profile';
+import { clientStrings, useTranslations } from '../i18n/ui';
+import AnswerComponent from './AnswerComponent.astro';
+import Spark from './Spark.astro';
+
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+const t = useTranslations(lang);
+const chips = t('ask.chips').split('|');
+---
+
+<div class="wrap flex flex-wrap items-start gap-12 pt-8 pb-16 md:pt-12">
+  <div class="flex min-w-0 flex-col gap-6" style="flex: 999 1 520px">
+    <p class="eyebrow">{t('hero.eyebrow')}</p>
+    <h1 class="display m-0 text-5xl leading-none md:text-7xl">
+      {t('hero.title1')} <span class="font-normal italic text-muted">{t('hero.title2')}</span>
+    </h1>
+    <p class="m-0 max-w-xl text-lg text-muted">{profile.summary[lang]} {t('hero.lead')}</p>
+
+    <ai-chat data-lang={lang} data-t={JSON.stringify(clientStrings(lang))} data-requires-js class="flex max-w-2xl flex-col gap-6">
+      <form role="search" aria-label={t('ask.formLabel')} class="m-0 flex flex-col gap-2.5" novalidate>
+        <label for="ask-input" class="flex items-center gap-2 font-mono text-[13px] text-accent-ink">
+          <Spark size={16} />
+          {t('ask.label')}
+        </label>
+        <div class="ask-box">
+          <input
+            id="ask-input"
+            name="q"
+            type="text"
+            maxlength="500"
+            autocomplete="off"
+            placeholder={t('ask.placeholder')}
+            aria-describedby="ask-disclaimer"
+          />
+          <button type="submit" class="btn btn-ai" data-submit>{t('ask.button')}</button>
+        </div>
+        <span id="ask-disclaimer" class="text-[13px] text-muted">{t('ask.disclaimer')}</span>
+        <span class="demo-note" data-demo-note hidden><Spark size={12} />{t('ask.demo')}</span>
+      </form>
+      <div class="flex flex-col gap-2.5">
+        <span id="chips-label" class="text-[13px] text-muted">{t('ask.tryWith')}</span>
+        <ul class="m-0 flex list-none flex-wrap gap-2 p-0" aria-labelledby="chips-label">
+          {
+            chips.map((c) => (
+              <li>
+                <button type="button" class="chip" data-chip>
+                  {c}
+                </button>
+              </li>
+            ))
+          }
+        </ul>
+      </div>
+    </ai-chat>
+  </div>
+
+  <section
+    aria-labelledby="answer-heading"
+    class="flex min-w-0 flex-col gap-4 rounded-xl border border-border bg-bg-soft p-4 md:p-6"
+    style="flex: 1 1 380px; max-width: 540px; box-shadow: 0 30px 60px rgb(0 0 0 / .25)"
+    id="answer-card"
+  >
+    <div class="flex items-center justify-between gap-2">
+      <h2 id="answer-heading" class="m-0 font-mono text-xs font-normal tracking-widest text-muted uppercase" data-sample-heading>
+        {t('sample.heading')}
+      </h2>
+      <button type="button" class="btn" style="font-size: 13px" data-clear hidden>{t('ask.clear')}</button>
+    </div>
+
+    <!-- Pre-rendered, clearly labelled sample answer (works without JS or API key). -->
+    <div class="flex flex-col gap-4" data-sample>
+      <p class="msg-user m-0">{t('sample.question')}</p>
+      <article class="msg-ai">
+        <span class="ai-mark" aria-hidden="true"><Spark size={16} /></span>
+        <div class="msg-ai__body">
+          <span class="msg-ai__name">{t('ask.assistantName')}</span>
+          <p class="msg-ai__text" style="white-space: normal">
+            {t('sample.answer')}
+            <a href="#project-loan-simulator" class="cite" aria-label={t('ask.sourceLabel', { n: 1, label: `${t('nav.projects')} · ${lang === 'es' ? 'Simulador de préstamos' : 'Loan simulator'}` })}>[1]</a>
+          </p>
+          <AnswerComponent name="project" id="loan-simulator" lang={lang} />
+          <ol class="sources" aria-label={t('ask.sources')}>
+            <li>[1] {t('nav.projects')} · {lang === 'es' ? 'Simulador de préstamos' : 'Loan simulator'}</li>
+          </ol>
+        </div>
+      </article>
+    </div>
+
+    <!-- Live conversation (filled by the chat island). -->
+    <div class="flex flex-col gap-4" data-thread hidden></div>
+    <div class="sr-only" aria-live="polite" data-live></div>
+  </section>
+</div>
+
+<script>
+  import { AnswerView, ask, type Strings, type Turn } from '../scripts/assistant';
+
+  class AiChat extends HTMLElement {
+    private t!: Strings;
+    private history: Turn[] = [];
+    private controller: AbortController | null = null;
+    private input!: HTMLInputElement;
+    private submit!: HTMLButtonElement;
+    private card!: HTMLElement;
+    private thread!: HTMLElement;
+    private live!: HTMLElement;
+
+    connectedCallback() {
+      this.t = JSON.parse(this.dataset.t!);
+      this.input = this.querySelector('input')!;
+      this.submit = this.querySelector('[data-submit]')!;
+      this.card = document.getElementById('answer-card')!;
+      this.thread = this.card.querySelector('[data-thread]')!;
+      this.live = this.card.querySelector('[data-live]')!;
+
+      this.querySelector('form')!.addEventListener('submit', (e) => {
+        e.preventDefault();
+        if (this.controller) return this.stop();
+        const q = this.input.value.trim();
+        if (!q) return this.input.focus();
+        this.input.value = '';
+        this.run(q);
+      });
+      this.querySelectorAll<HTMLButtonElement>('[data-chip]').forEach((b) =>
+        b.addEventListener('click', () => !this.controller && this.run(b.textContent!.trim())),
+      );
+      this.card.querySelector<HTMLButtonElement>('[data-clear]')!.addEventListener('click', () => this.clear());
+    }
+
+    private stop() {
+      this.controller?.abort();
+    }
+
+    private setBusy(busy: boolean) {
+      this.submit.textContent = busy ? this.t['ask.stop'] : this.t['ask.button'];
+      this.submit.classList.toggle('btn-ai', !busy);
+      this.submit.classList.toggle('btn-ink', busy);
+    }
+
+    private showThread() {
+      this.card.querySelector<HTMLElement>('[data-sample]')!.hidden = true;
+      this.thread.hidden = false;
+      this.card.querySelector<HTMLElement>('[data-sample-heading]')!.textContent = this.t['ask.conversation'];
+      this.card.querySelector<HTMLElement>('[data-clear]')!.hidden = false;
+    }
+
+    private clear() {
+      this.stop();
+      this.history = [];
+      this.thread.replaceChildren();
+      this.thread.hidden = true;
+      this.card.querySelector<HTMLElement>('[data-sample]')!.hidden = false;
+      this.card.querySelector<HTMLElement>('[data-sample-heading]')!.textContent = this.card.dataset.sampleHeading ?? '';
+      this.card.querySelector<HTMLElement>('[data-clear]')!.hidden = true;
+      this.input.focus();
+    }
+
+    async run(question: string) {
+      if (!this.card.dataset.sampleHeading)
+        this.card.dataset.sampleHeading = this.card.querySelector('[data-sample-heading]')!.textContent ?? '';
+      this.showThread();
+      const user = document.createElement('p');
+      user.className = 'msg-user m-0 fade-in';
+      user.textContent = question;
+      const view = new AnswerView(this.t);
+      this.thread.append(user, view.root);
+      if (window.innerWidth < 900) this.card.scrollIntoView({ block: 'nearest' });
+      await this.attempt(question, view);
+    }
+
+    private async attempt(question: string, view: AnswerView) {
+      this.controller = new AbortController();
+      this.setBusy(true);
+      const history = this.history.slice(-6);
+      const outcome = await ask({
+        payload: { message: question, lang: this.dataset.lang as 'en' | 'es', history, mode: 'chat' },
+        view,
+        live: this.live,
+        t: this.t,
+        signal: this.controller.signal,
+        onRetry: () => {
+          if (this.controller) return;
+          view.reset();
+          this.attempt(question, view);
+        },
+        onEdit: () => {
+          this.input.value = question;
+          this.input.focus();
+        },
+      });
+      this.controller = null;
+      this.setBusy(false);
+      if (outcome.demo) this.querySelector<HTMLElement>('[data-demo-note]')!.hidden = false;
+      if (outcome.status === 'done') {
+        // Conversational memory: last 6 turns, sent with the next question.
+        this.history.push({ role: 'user', content: question }, { role: 'assistant', content: outcome.text });
+        this.history = this.history.slice(-6);
+      }
+    }
+  }
+  customElements.define('ai-chat', AiChat);
+</script>
