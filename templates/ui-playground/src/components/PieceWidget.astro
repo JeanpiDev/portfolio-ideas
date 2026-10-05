@@ -1,0 +1,227 @@
+---
+/**
+ * Renders one piece in one state. Used three ways:
+ *  - on the table (preview, wrapped in `inert` by the caller),
+ *  - in the inspector's States tab (cloned from a <template>, fully operable),
+ *  - on the no-JS piece page.
+ * Behaviour (slider output, OTP auto-advance, switch, tabs...) is delegated in
+ * src/scripts/widgets.ts, so cloned copies work without re-binding.
+ */
+import type { Lang } from '../data/profile';
+import { profile } from '../data/profile';
+import { useTranslations } from '../i18n/ui';
+
+interface Props { id: string; state?: string; lang: Lang; uid: string }
+const { id, lang, uid } = Astro.props;
+const state = Astro.props.state ?? 'default';
+const t = useTranslations(lang);
+const fmt = (n: number) => new Intl.NumberFormat(lang === 'es' ? 'es-CO' : 'en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n);
+
+const amount = state === 'max' ? 50000 : 12000;
+const otp = state === 'empty' ? ['', '', '', '', '', ''] : state === 'error' ? ['4', '8', '1', '9', '0', '2'] : ['4', '8', '1', '', '', ''];
+const bars = [12, 23, 17, 30, 9];
+const tabs = [
+  { key: 'summary', label: t('w.tabSummary'), body: t('w.tabSummaryBody') },
+  { key: 'payments', label: t('w.tabPayments'), body: t('w.tabPaymentsBody') },
+  { key: 'sign', label: t('w.tabSign'), body: t('w.tabSignBody') },
+];
+const activeTab = state === 'second' ? 1 : 0;
+const job = { running: t('w.jobRunning'), failed: t('w.jobFailed'), done: t('w.jobDone') } as Record<string, string>;
+const jobState = ['running', 'failed', 'done'].includes(state) ? state : 'running';
+const avatarState = ['available', 'busy', 'away'].includes(state) ? state : 'available';
+const chips = [
+  { k: 'open', label: t('w.chipOpen') },
+  { k: 'parking', label: t('w.chipParking') },
+  { k: 'pets', label: t('w.chipPets') },
+];
+const chipOn = state === 'some' ? ['open'] : state === 'zero' ? ['open', 'parking', 'pets'] : [];
+const chipCount = state === 'zero' ? 0 : state === 'some' ? 9 : 24;
+const steps = [t('w.stepAmount'), t('w.stepVerify'), t('w.stepSign')];
+const stepIdx = state === 'step2' ? 1 : state === 'complete' ? 3 : 0;
+---
+<div class={`w w-${id}`} data-w={id} data-state={state}>
+  {id === 'loan-slider' && (
+    <div class="w-stack" data-loan data-locale={lang === 'es' ? 'es-CO' : 'en-US'}>
+      <label class="w-label" for={`${uid}-amt`}>{t('w.loanAmount')}</label>
+      <output class="w-big display" for={`${uid}-amt`} data-out>{fmt(amount)}</output>
+      <input class="w-range" id={`${uid}-amt`} type="range" min="1000" max="50000" step="500" value={amount} disabled={state === 'disabled'} data-range />
+    </div>
+  )}
+
+  {id === 'otp-input' && (
+    <fieldset class="w-stack w-otp" data-otp aria-describedby={state === 'error' ? `${uid}-otperr` : undefined}>
+      <legend class="w-label">{t('w.otpLabel')}</legend>
+      <div class="w-otp-row">
+        {otp.map((d, i) => (
+          <input class="w-otp-box mono" type="text" inputmode="numeric" maxlength="1" autocomplete={i === 0 ? 'one-time-code' : 'off'}
+            value={d} aria-label={t('w.otpDigit').replace('{n}', String(i + 1))} aria-invalid={state === 'error' ? 'true' : undefined} />
+        ))}
+      </div>
+      {state === 'error' && <p class="w-error" id={`${uid}-otperr`}>{t('w.otpError')}</p>}
+    </fieldset>
+  )}
+
+  {id === 'theme-toggle' && (
+    <button type="button" class="w-switch" role="switch" aria-checked={state === 'on' ? 'true' : 'false'} disabled={state === 'disabled'} data-switch>
+      <span class="switch-track"><span class="switch-thumb"></span></span>
+      <span>{t('w.darkMode')}</span>
+    </button>
+  )}
+
+  {id === 'tabs' && (
+    <div class="w-tabs" data-minitabs>
+      <div role="tablist" aria-label={t('w.tabSummary')} class="w-tablist">
+        {tabs.map((tab, i) => (
+          <button type="button" role="tab" id={`${uid}-tab-${i}`} aria-controls={`${uid}-panel-${i}`}
+            aria-selected={i === activeTab ? 'true' : 'false'} tabindex={i === activeTab ? 0 : -1}
+            disabled={state === 'disabled' && i === 2}>{tab.label}</button>
+        ))}
+      </div>
+      {tabs.map((tab, i) => (
+        <p role="tabpanel" id={`${uid}-panel-${i}`} aria-labelledby={`${uid}-tab-${i}`} hidden={i !== activeTab} class="w-tabpanel">{tab.body}</p>
+      ))}
+    </div>
+  )}
+
+  {id === 'bar-chart' && (
+    <div class="w-stack w-chart" data-chart>
+      <span class="w-label" id={`${uid}-chart`}>{t('w.chartLabel')}</span>
+      {state === 'empty' ? (
+        <p class="w-empty">{t('w.chartEmpty')}</p>
+      ) : (
+        <>
+          <div class="w-bars" role="group" aria-labelledby={`${uid}-chart`}>
+            {bars.map((n, i) => {
+              const label = t('w.chartBar').replace('{h}', String(9 + i).padStart(2, '0')).replace('{n}', String(n));
+              return <button type="button" class="w-bar" style={`--h:${Math.round((n / 30) * 100)}%`} aria-label={label} aria-pressed={state === 'selected' && i === 3 ? 'true' : 'false'} data-label={label}><span></span></button>;
+            })}
+          </div>
+          <p class="w-readout mono" aria-live="polite" data-readout>
+            {state === 'selected' ? t('w.chartBar').replace('{h}', '12').replace('{n}', '30') : t('w.chartHint')}
+          </p>
+        </>
+      )}
+    </div>
+  )}
+
+  {id === 'queue-card' && (
+    <div class="w-stack w-job" data-job data-status={jobState} data-l-running={job.running} data-l-done={job.done}>
+      <div class="w-job-head">
+        <span class="w-job-name">{t('w.jobName')}</span>
+        <span class="w-pill" data-status-label><span class="w-dot" aria-hidden="true"></span>{job[jobState]}</span>
+      </div>
+      <div class="w-progress" aria-hidden="true"><span></span></div>
+      {jobState === 'failed' && <button type="button" class="btn btn-sm" data-retry>{t('w.jobRetry')}</button>}
+    </div>
+  )}
+
+  {id === 'hire-button' && (
+    state === 'loading' ? (
+      <button type="button" class="btn btn-ink w-hire" disabled aria-busy="true">{t('w.sending')}</button>
+    ) : state === 'success' ? (
+      <p class="btn w-hire" role="status">{t('w.sent')}</p>
+    ) : (
+      <a class="btn btn-ink w-hire" href={`/${lang}/resume/#contact`}>{t('w.hire')} <span aria-hidden="true">→</span></a>
+    )
+  )}
+
+  {id === 'avatar-badge' && (
+    <div class="w-avatar-wrap">
+      <span class="w-avatar display" role="img" aria-label={`${profile.name}, ${t(`w.${avatarState}` as any)}`}>
+        {profile.initials}
+        <span class="w-status" data-status={avatarState} aria-hidden="true"></span>
+      </span>
+      <span class="w-avatar-text" aria-hidden="true">{t(`w.${avatarState}` as any)}</span>
+    </div>
+  )}
+
+  {id === 'filter-chips' && (
+    <div class="w-stack" data-chips data-tpl={t('w.results')} data-zero={t('w.zero')}>
+      <div class="w-chips" role="group" aria-label={t('w.filters')}>
+        {chips.map((c) => <button type="button" class="w-chip" aria-pressed={chipOn.includes(c.k) ? 'true' : 'false'}>{c.label}</button>)}
+      </div>
+      <p class="w-readout" aria-live="polite" data-count>{chipCount === 0 ? t('w.zero') : t('w.results').replace('{n}', String(chipCount))}</p>
+    </div>
+  )}
+
+  {id === 'toast' && (
+    <div class={`w-toast ${state === 'error' ? 'is-error' : ''}`} role={state === 'error' ? 'alert' : 'status'} data-toast data-undone={t('w.undone')}>
+      <span data-toast-text>{state === 'error' ? t('w.toastError') : t('w.toastInfo')}</span>
+      <button type="button" class="btn btn-sm" data-undo>{state === 'error' ? t('err.retry') : t('w.undo')}</button>
+    </div>
+  )}
+
+  {id === 'stepper' && (
+    <ol class="w-stepper" aria-label={t('w.steps')}>
+      {steps.map((s, i) => (
+        <li aria-current={i === stepIdx ? 'step' : undefined} class={i < stepIdx ? 'is-done' : ''}>
+          <span class="w-step-n mono" aria-hidden="true">{i < stepIdx ? '✓' : i + 1}</span>
+          <span>{s}{i < stepIdx && <span class="sr-only"> ({t('w.stepDone')})</span>}</span>
+        </li>
+      ))}
+    </ol>
+  )}
+</div>
+
+<style is:global>
+  .w { font-size: 14px; color: var(--text); }
+  .w-stack { display: flex; flex-direction: column; gap: 8px; border: 0; margin: 0; padding: 0; min-width: 0; }
+  .w-label { font-size: 13px; color: var(--muted); font-weight: 600; padding: 0; }
+  .w-big { font-size: 26px; font-weight: 700; line-height: 1.1; }
+  .w-range { width: 100%; min-height: 44px; accent-color: var(--text); margin: 0; }
+  .w-otp-row { display: flex; flex-wrap: wrap; gap: 6px; }
+  .w-otp-box { width: 44px; height: 48px; border-radius: var(--radius-sm); border: 1px solid var(--border-strong); background: var(--bg-soft); color: var(--text); text-align: center; font-size: 18px; font-weight: 600; padding: 0; }
+  .w-otp-box[aria-invalid='true'] { border-color: var(--danger); }
+  .w-error { margin: 0; color: var(--danger); font-size: 13px; }
+  .w-switch { display: inline-flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 12px; border-radius: var(--radius-md); border: 1px solid var(--border-strong); background: var(--surface); color: var(--text); font: inherit; font-weight: 600; cursor: pointer; }
+  .w-switch[disabled] { opacity: .6; cursor: not-allowed; }
+  .w-tablist { display: flex; gap: 4px; padding: 4px; border-radius: var(--radius-md); background: var(--bg-soft); border: 1px solid var(--border); }
+  .w-tablist [role='tab'] { min-height: 44px; padding: 0 12px; border-radius: var(--radius-sm); border: 0; background: transparent; color: var(--muted); font: inherit; font-weight: 600; font-size: 13px; cursor: pointer; }
+  .w-tablist [role='tab'][aria-selected='true'] { background: var(--text); color: var(--bg); }
+  .w-tablist [role='tab'][disabled] { opacity: .55; cursor: not-allowed; text-decoration: line-through; }
+  .w-tabpanel { margin: 8px 4px 0; color: var(--muted); font-size: 13px; }
+  .w-bars { display: flex; gap: 4px; height: 96px; }
+  /* The whole column is the 44px-wide target; the inner span is the visual bar. */
+  .w-bar { flex: 1; min-width: 44px; height: 100%; border: 0; background: transparent; cursor: pointer; padding: 0; display: flex; align-items: flex-end; border-radius: 4px; }
+  .w-bar span { display: block; width: 100%; height: var(--h); border-radius: 4px 4px 0 0; background: var(--border-strong); }
+  .w-bar[aria-pressed='true'] span { background: var(--text); }
+  .piece-preview .w-otp-row { flex-wrap: nowrap; }
+  .piece-preview .w-otp-box { width: 32px; height: 40px; }
+  .piece-preview .w-bar { min-width: 24px; }
+  .w-readout { margin: 0; font-size: 12px; color: var(--muted); }
+  .w-empty { margin: 0; padding: 16px; border: 1px dashed var(--border-strong); border-radius: var(--radius-md); color: var(--muted); font-size: 13px; }
+  .w-job { min-width: 220px; }
+  .w-job-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .w-job-name { font-weight: 700; }
+  .w-pill { display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px; border-radius: var(--radius-pill); border: 1px solid var(--border-strong); font-size: 12px; font-weight: 600; }
+  .w-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+  [data-status='failed'] .w-pill { color: var(--danger); border-color: var(--danger); }
+  [data-status='failed'] .w-dot { background: var(--danger); border-radius: 1px; }
+  [data-status='done'] .w-dot { background: var(--text); }
+  .w-progress { height: 6px; border-radius: 3px; background: var(--surface-2); overflow: hidden; }
+  .w-progress span { display: block; height: 100%; width: 55%; background: var(--muted); }
+  [data-status='failed'] .w-progress span { width: 30%; background: var(--danger); }
+  [data-status='done'] .w-progress span { width: 100%; background: var(--text); }
+  .w-hire { font-size: 16px; min-height: 52px; padding: 0 22px; margin: 0; }
+  .w-avatar-wrap { display: flex; align-items: center; gap: 12px; }
+  .w-avatar { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 64px; height: 64px; border-radius: 50%; background: var(--text); color: var(--bg); font-weight: 800; font-size: 22px; }
+  .w-status { position: absolute; right: -2px; bottom: -2px; width: 20px; height: 20px; border-radius: 50%; border: 3px solid var(--surface); background: var(--text); display: grid; place-items: center; }
+  .w-status::after { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--bg); }
+  .w-status[data-status='busy']::after { width: 8px; height: 2px; border-radius: 1px; }
+  .w-status[data-status='away'] { background: var(--muted); }
+  .w-status[data-status='away']::after { width: 0; height: 0; }
+  .w-avatar-text { font-weight: 600; }
+  .w-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .w-chip { min-height: 44px; padding: 0 14px; border-radius: var(--radius-pill); border: 1px solid var(--border-strong); background: var(--surface); color: var(--text); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+  .w-chip[aria-pressed='true'] { background: var(--text); color: var(--bg); }
+  .w-chip[aria-pressed='true']::before { content: '✓ '; }
+  .w-toast { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 8px 8px 14px; border-radius: var(--radius-md); background: var(--text); color: var(--bg); font-weight: 600; }
+  .w-toast .btn { background: transparent; color: var(--bg); border-color: var(--bg); }
+  .w-toast.is-error { background: var(--surface); color: var(--text); border: 1px solid var(--danger); }
+  .w-toast.is-error .btn { color: var(--text); border-color: var(--border-strong); }
+  .w-stepper { list-style: none; display: flex; gap: 8px; margin: 0; padding: 0; flex-wrap: wrap; }
+  .w-stepper li { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 13px; font-weight: 600; }
+  .w-stepper li[aria-current='step'] { color: var(--text); }
+  .w-step-n { display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; border: 1px solid var(--border-strong); font-size: 12px; }
+  .w-stepper li[aria-current='step'] .w-step-n, .w-stepper li.is-done .w-step-n { background: var(--text); color: var(--bg); border-color: var(--text); }
+</style>

@@ -1,0 +1,66 @@
+---
+/**
+ * Layer 1 fallback: one static page per piece (no JS needed). The table's
+ * "Inspect" links point here; with JS the inspector opens in place instead.
+ */
+import Base from '../../../layouts/Base.astro';
+import Icon from '../../../components/Icon.astro';
+import PieceWidget from '../../../components/PieceWidget.astro';
+import { pieces, pieceById } from '../../../data/pieces';
+import { projects, type Lang } from '../../../data/profile';
+import { useTranslations, otherLang } from '../../../i18n/ui';
+
+export function getStaticPaths() {
+  return (['en', 'es'] as const).flatMap((lang) => pieces.map((p) => ({ params: { lang, id: p.id } })));
+}
+const lang = Astro.params.lang as Lang;
+const piece = pieceById(Astro.params.id!)!;
+const project = projects.find((p) => p.id === piece.project);
+const t = useTranslations(lang);
+---
+<Base lang={lang} page="piece" altPath={`/${otherLang(lang)}/pieces/${piece.id}/`} title={`${piece.name[lang]} · ${t('meta.title')}`}>
+  <main id="main" class="pp">
+    <p><a class="btn btn-sm" href={`/${lang}/`}><Icon name="back" size={16} /> {t('nojs.back')}</a></p>
+    <h1 class="display">{piece.name[lang]}</h1>
+    {project && <p class="pp-meta">{t('insp.project')}: <a href={`/${lang}/resume/#project-${project.id}`}>{project.name[lang]}</a></p>}
+
+    <section aria-labelledby="pp-story">
+      <h2 id="pp-story">{t('nojs.story')}</h2>
+      <p>{piece.story ? piece.story[lang] : t('insp.noStory')}</p>
+    </section>
+
+    <section aria-labelledby="pp-states">
+      <h2 id="pp-states">{t('nojs.states')}</h2>
+      <div class="pp-states">
+        {piece.states.map((s) => (
+          <figure class="pp-state">
+            <figcaption class="mono">{s.label[lang]}</figcaption>
+            <PieceWidget id={piece.id} state={s.id} lang={lang} uid={`pp-${piece.id}-${s.id}`} />
+          </figure>
+        ))}
+      </div>
+    </section>
+
+    <section aria-labelledby="pp-code">
+      <h2 id="pp-code">{t('nojs.code')}</h2>
+      <pre class="pp-pre" tabindex="0" aria-labelledby="pp-code"><code>{piece.code.snippet}</code></pre>
+    </section>
+  </main>
+</Base>
+
+<script>
+  import { initWidgets } from '../../../scripts/widgets';
+  initWidgets();
+</script>
+
+<style>
+  .pp { max-width: 760px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: clamp(32px, 6vw, 52px); margin: 16px 0 4px; line-height: 1.05; }
+  .pp-meta { color: var(--muted); margin: 0; }
+  section { margin-top: 32px; }
+  h2 { font-size: 20px; margin: 0 0 12px; }
+  .pp-states { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(min(260px, 100%), 1fr)); }
+  .pp-state { margin: 0; padding: 16px; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface); display: flex; flex-direction: column; gap: 10px; }
+  .pp-state figcaption { font-size: 12px; color: var(--muted); }
+  .pp-pre { margin: 0; padding: 16px; border-radius: var(--radius-md); background: var(--surface); border: 1px solid var(--border); overflow-x: auto; font-family: var(--font-mono); font-size: 13px; line-height: 1.6; }
+</style>

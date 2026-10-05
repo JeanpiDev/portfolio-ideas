@@ -1,0 +1,280 @@
+---
+/**
+ * The playground. Progressive enhancement in three layers:
+ *  1. HTML: a grid of pieces, each with an "Inspect" link to /<lang>/pieces/<id>/.
+ *  2. JS: roving tabindex, keyboard pick-up/move/drop, inspector with AI story.
+ *  3. Physics (matter-js) moving the SAME DOM nodes, only with full motion,
+ *     viewport >= 768px and gravity on. See src/scripts/playground.ts.
+ */
+import Base from '../../layouts/Base.astro';
+import Icon from '../../components/Icon.astro';
+import PieceWidget from '../../components/PieceWidget.astro';
+import { pieces } from '../../data/pieces';
+import { projects, experience, type Lang } from '../../data/profile';
+import { useTranslations, otherLang, ui } from '../../i18n/ui';
+
+export function getStaticPaths() {
+  return [{ params: { lang: 'en' } }, { params: { lang: 'es' } }];
+}
+const lang = Astro.params.lang as Lang;
+const t = useTranslations(lang);
+const projectName = (id: string) => projects.find((p) => p.id === id)?.name[lang] ?? id;
+
+// Data the client needs to render component cards and strings.
+const clientData = {
+  lang,
+  total: pieces.length,
+  t: ui[lang],
+  pieces: Object.fromEntries(pieces.map((p) => [p.id, { name: p.name[lang], project: p.project, projectName: projectName(p.project), hasStory: !!p.story }])),
+  projects: Object.fromEntries(projects.map((p) => [p.id, { name: p.name[lang], description: p.description[lang], tags: p.tags, kind: p.kind[lang] }])),
+  experience: Object.fromEntries(experience.map((e) => [e.id, { role: e.role[lang], company: e.company, period: e.period }])),
+};
+---
+<Base lang={lang} page="playground" altPath={`/${otherLang(lang)}/`}>
+  <p slot="header" class="discovered mono needs-js">
+    {t('nav.discovered')} <b data-discovered>0</b>/<span>{pieces.length}</span>
+  </p>
+
+  <main id="main" class="pg">
+    <section class="pg-left" aria-labelledby="hero-title">
+      <div class="hero">
+        <h1 id="hero-title" class="display">
+          <span>{t('hero.l1')}</span> <span class="l2">{t('hero.l2')}</span> <span class="l3">{t('hero.l3')}</span>
+        </h1>
+        <p class="lead">{t('hero.lead')}</p>
+      </div>
+
+      <div class="table-bar">
+        <h2 id="table-title" class="table-title display">{t('table.title')}</h2>
+        <div class="table-controls needs-js" role="group" aria-label={t('nav.controls')}>
+          <button type="button" class="btn btn-sm gravity" role="switch" aria-checked="true" data-gravity aria-describedby="gravity-note">
+            <span class="switch-track"><span class="switch-thumb"></span></span>
+            {t('nav.gravity')}
+          </button>
+          <button type="button" class="btn btn-sm" data-tidy>{t('table.tidy')}</button>
+          <button type="button" class="btn btn-sm" data-scatter>{t('table.scatter')}</button>
+        </div>
+      </div>
+      <p id="table-hint" class="hint needs-js">{t('table.hint')} <span class="hint-pointer">{t('table.hintPointer')}</span></p>
+      <p id="gravity-note" class="sr-only" data-gravity-note></p>
+
+      <ul class="table" id="table" aria-labelledby="table-title" data-table>
+        {pieces.map((p, i) => (
+          <li class="piece" data-piece={p.id} data-on-table={String(p.onTable)} style={`--r:${[-2, 1.5, -1, 2, -1.5, 1, -2.5, 2][i % 8]}deg`}>
+            <div class="piece-card" data-handle tabindex="-1" role="group" aria-roledescription={t('piece.roledesc')}
+              aria-label={`${p.name[lang]}, ${t('piece.from')} ${projectName(p.project)}`}>
+              <div class="piece-preview" inert>
+                <PieceWidget id={p.id} lang={lang} uid={`tbl-${p.id}`} />
+              </div>
+              <p class="piece-meta mono" aria-hidden="true">{p.name[lang]} · {projectName(p.project)}</p>
+            </div>
+            <div class="piece-tools">
+              <a class="btn btn-sm" href={`/${lang}/pieces/${p.id}/`} data-inspect>
+                <Icon name="lens" size={16} /> {t('piece.inspect')}<span class="sr-only">: {p.name[lang]}</span>
+              </a>
+              <button type="button" class="btn btn-sm needs-js" data-pickup aria-pressed="false">
+                <Icon name="hand" size={16} /> <span data-pickup-label data-up={t('piece.pickup')} data-drop={t('piece.drop')}>{t('piece.pickup')}</span><span class="sr-only">: {p.name[lang]}</span>
+              </button>
+            </div>
+          </li>
+        ))}
+      </ul>
+
+      <section class="tray needs-js" aria-labelledby="tray-title">
+        <h2 id="tray-title" class="tray-title">{t('tray.title')}</h2>
+        <ul class="tray-list" data-tray>
+          {pieces.filter((p) => !p.onTable).map((p) => (
+            <li><button type="button" class="btn btn-sm" data-add={p.id}><Icon name="plus" size={16} /> {p.name[lang]}</button></li>
+          ))}
+        </ul>
+        <p class="tray-empty" data-tray-empty hidden>{t('tray.empty')}</p>
+      </section>
+    </section>
+
+    <aside class="insp" id="inspector" aria-labelledby="insp-title" data-inspector>
+      <h2 id="insp-title" class="insp-title ai-label"><Icon name="spark" size={14} /> {t('insp.title')} · AI</h2>
+      <div class="lens" data-lens>
+        <Icon name="lens" size={32} />
+        <span class="lens-main">{t('insp.lens')}</span>
+        <span class="lens-sub needs-js">{t('insp.lensKeyboard')}</span>
+      </div>
+
+      <p class="insp-empty" data-insp-empty>{t('insp.empty')}</p>
+
+      <div class="insp-body" data-insp-body hidden>
+        <div class="insp-head">
+          <p class="mono eyebrow">{t('insp.inspecting')}</p>
+          <h3 class="insp-name display" tabindex="-1" data-insp-name></h3>
+          <p class="insp-project" data-insp-project></p>
+        </div>
+
+        <div class="insp-tabs" role="tablist" aria-label={t('insp.tabs')} data-insp-tabs>
+          <button type="button" role="tab" id="itab-story" aria-controls="ipanel-story" aria-selected="true">{t('insp.story')}</button>
+          <button type="button" role="tab" id="itab-states" aria-controls="ipanel-states" aria-selected="false" tabindex="-1">{t('insp.states')}</button>
+          <button type="button" role="tab" id="itab-code" aria-controls="ipanel-code" aria-selected="false" tabindex="-1">{t('insp.code')}</button>
+        </div>
+
+        <div role="tabpanel" id="ipanel-story" aria-labelledby="itab-story" class="ipanel">
+          <div class="ai-card story">
+            <p class="ai-label"><Icon name="spark" size={14} /> {t('insp.aiLabel')}</p>
+            <p class="demo-note mono" data-demo hidden>{t('chat.demo')}</p>
+            <div class="thread" data-thread></div>
+            <div class="nostory" data-nostory hidden>
+              <p>{t('insp.noStory')}</p>
+              <div class="nostory-actions">
+                <button type="button" class="btn btn-sm" data-nostory-ask>{t('insp.noStoryAsk')}</button>
+                <button type="button" class="btn btn-sm" data-nostory-other>{t('insp.noStoryOther')}</button>
+                <a class="btn btn-sm" href={`/${lang}/resume/`}>{t('nav.resume')}</a>
+              </div>
+            </div>
+            <div class="error" role="alert" data-error></div>
+            <p class="sr-only" aria-live="polite" data-live></p>
+          </div>
+
+          <form class="ask" data-ask novalidate>
+            <label for="ask-input" class="ask-label">{t('chat.label')}</label>
+            <div class="ask-row">
+              <input id="ask-input" name="q" type="text" autocomplete="off" placeholder={t('chat.placeholder')} aria-describedby="ask-disclaimer" />
+              <button type="submit" class="btn btn-ink" data-ask-btn>{t('chat.ask')}</button>
+            </div>
+            <p id="ask-disclaimer" class="disclaimer">{t('chat.disclaimer')}</p>
+          </form>
+        </div>
+        <div role="tabpanel" id="ipanel-states" aria-labelledby="itab-states" class="ipanel" hidden data-insp-states></div>
+        <div role="tabpanel" id="ipanel-code" aria-labelledby="itab-code" class="ipanel" hidden data-insp-code></div>
+
+        <div class="insp-foot">
+          <a class="btn btn-sm" href="#" data-insp-page><Icon name="ext" size={16} /> {t('insp.openPage')}</a>
+          <button type="button" class="btn btn-sm" data-insp-clear><Icon name="close" size={16} /> {t('insp.close')}</button>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <!-- Live regions + templates for the inspector -->
+  <p class="sr-only" aria-live="polite" data-announce></p>
+  {pieces.map((p) => (
+    <>
+      <template id={`tpl-states-${p.id}`}>
+        <div class="states">
+          {p.states.map((s) => (
+            <figure class="state">
+              <figcaption class="mono">{s.label[lang]}</figcaption>
+              <PieceWidget id={p.id} state={s.id} lang={lang} uid={`st-${p.id}-${s.id}`} />
+            </figure>
+          ))}
+        </div>
+      </template>
+      <template id={`tpl-code-${p.id}`}>
+        <pre class="code" tabindex="0" aria-label={`${t('insp.code')}: ${p.name[lang]}`}><code>{p.code.snippet}</code></pre>
+      </template>
+    </>
+  ))}
+  <script type="application/json" id="pg-data" set:html={JSON.stringify(clientData).replace(/</g, '\\u003c')} />
+</Base>
+
+<script>
+  import { initWidgets } from '../../scripts/widgets';
+  import { initPlayground } from '../../scripts/playground';
+  initWidgets();
+  initPlayground();
+</script>
+
+<style is:global>
+  .discovered { margin: 0; font-size: 13px; color: var(--muted); }
+  .discovered b { color: var(--text); }
+  .pg { display: grid; grid-template-columns: minmax(0, 1fr); }
+  @media (min-width: 1024px) { .pg { grid-template-columns: minmax(0, 1fr) 420px; } }
+  .pg-left { padding: 24px 16px 32px; min-width: 0; }
+  @media (min-width: 768px) { .pg-left { padding: 32px; } }
+  .hero h1 { margin: 0; font-size: clamp(44px, 9vw, 104px); line-height: .95; letter-spacing: -0.03em; font-weight: 800; }
+  .hero h1 span { display: block; }
+  .hero h1 .l2 { color: var(--muted); }
+  .hero h1 .l3 { font-weight: 300; }
+  .lead { max-width: 52ch; color: var(--muted); font-size: 18px; margin: 16px 0 24px; }
+  .table-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+  .table-title { margin: 0; font-size: 22px; }
+  .table-controls { display: flex; flex-wrap: wrap; gap: 8px; }
+  .gravity { gap: 10px; }
+  .hint { margin: 8px 0 16px; font-size: 13px; color: var(--muted); max-width: 80ch; }
+
+  /* Layer 1: grid */
+  .table { list-style: none; margin: 0; padding: 16px; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(240px, 100%), 1fr)); gap: 20px 16px; border-radius: var(--radius-xl); background: var(--bg-soft); border: 1px solid var(--border); position: relative; }
+  .piece { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+  .piece[hidden] { display: none !important; }
+  .piece-card { background: var(--surface); border: 1px solid var(--border-strong); border-radius: var(--radius-lg); padding: 16px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 10px; transform: rotate(var(--r, 0deg)); cursor: pointer; user-select: none; -webkit-user-select: none; }
+  html.reduce-motion .piece-card { transform: none; }
+  .piece.is-picked .piece-card { outline: 2px dashed var(--text); outline-offset: 4px; }
+  .piece.is-dragging .piece-card { cursor: grabbing; }
+  .piece-preview { pointer-events: none; }
+  .piece-meta { margin: 0; font-size: 12px; color: var(--muted); }
+  .piece-tools { display: flex; gap: 8px; flex-wrap: wrap; }
+  .js .piece-tools .btn { background: var(--surface); }
+  /* Grid mode: pieces moved with keyboard/pointer use a transform offset. */
+  .piece[data-offset] { position: relative; z-index: 2; }
+
+  /* Layer 3: physics. Same nodes, absolutely positioned and moved by transforms. */
+  .table.is-physics { display: block; height: clamp(560px, 72vh, 780px); overflow: hidden; padding: 0; }
+  .table.is-physics .piece { position: absolute; left: 0; top: 0; width: max-content; will-change: transform; }
+  .table.is-physics .piece-card { max-width: 280px; transform: rotate(var(--a, 0rad)); touch-action: none; cursor: grab; }
+  .table.is-physics .piece-tools { position: absolute; top: calc(100% + 6px); left: 50%; translate: -50% 0; display: none; z-index: 3; flex-wrap: nowrap; }
+  .table.is-physics .piece:focus-within, .table.is-physics .piece:hover { z-index: 5; }
+  .table.is-physics .piece:focus-within .piece-tools, .table.is-physics .piece:hover .piece-tools { display: flex; }
+  .table.is-physics .piece:hover:not(:focus-within) .piece-tools { pointer-events: auto; }
+
+  .tray { margin-top: 20px; padding: 12px 16px; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface); display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+  .tray-title { margin: 0; font-size: 15px; }
+  .tray-list { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+  .tray-empty { margin: 0; color: var(--muted); font-size: 13px; }
+
+  /* Inspector */
+  .insp { border-top: 1px solid var(--border); background: var(--surface); padding: 20px 16px 32px; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+  @media (min-width: 1024px) { .insp { border-top: 0; border-left: 1px solid var(--border); position: sticky; top: 0; max-height: 100vh; overflow-y: auto; padding: 24px; } }
+  .insp-title { margin: 0; font-size: 13px; font-weight: 600; }
+  .lens { border: 2px dashed var(--accent); border-radius: var(--radius-xl); min-height: 120px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 16px; text-align: center; color: var(--accent-ink); background: var(--glow); transition: background-color var(--dur-2) var(--ease); }
+  .lens.is-over { background: var(--accent); color: var(--accent-contrast); }
+  .lens-main { font-weight: 700; }
+  .lens-sub { font-size: 13px; }
+  .insp-empty { margin: 0; color: var(--muted); }
+  .insp-body { display: flex; flex-direction: column; gap: 14px; }
+  .insp-body[hidden] { display: none; }
+  .eyebrow { margin: 0; font-size: 12px; color: var(--muted); }
+  .insp-name { margin: 2px 0; font-size: 28px; line-height: 1.15; }
+  .insp-project { margin: 0; font-size: 13px; color: var(--muted); }
+  .insp-tabs { display: flex; padding: 4px; border-radius: var(--radius-md); background: var(--bg-soft); border: 1px solid var(--border); }
+  .insp-tabs [role='tab'] { flex: 1; min-height: 44px; border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--muted); font: inherit; font-weight: 600; font-size: 14px; cursor: pointer; }
+  .insp-tabs [role='tab'][aria-selected='true'] { background: var(--surface); color: var(--text); box-shadow: 0 0 0 1px var(--border-strong); }
+  .ipanel[hidden] { display: none; }
+  .story { padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+  .story .ai-label { margin: 0; }
+  .demo-note { margin: 0; font-size: 12px; color: var(--muted); }
+  .thread { display: flex; flex-direction: column; gap: 12px; }
+  .msg { display: flex; flex-direction: column; gap: 8px; }
+  .msg-text { margin: 0; white-space: pre-wrap; }
+  .msg-thinking { color: var(--muted); font-style: italic; }
+  .msg-user { align-self: flex-end; max-width: 90%; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 8px 12px; margin: 0; }
+  .sources { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; font-size: 12px; }
+  .sources a { display: inline-flex; align-items: center; min-height: 44px; padding: 4px 10px; border-radius: var(--radius-pill); border: 1px solid var(--accent); color: var(--accent-ink); text-decoration: none; font-family: var(--font-mono); }
+  .sources a:hover { text-decoration: underline; }
+  .card { border: 1px solid var(--border-strong); border-radius: var(--radius-md); padding: 12px; background: var(--surface); display: flex; flex-direction: column; gap: 4px; }
+  .card p { margin: 0; font-size: 13px; color: var(--muted); }
+  .card strong { font-size: 15px; }
+  .card .tags { font-family: var(--font-mono); font-size: 12px; color: var(--faint); }
+  .card a, .card button { align-self: flex-start; margin-top: 4px; white-space: normal; text-align: left; height: auto; padding-block: 8px; }
+  .nostory p { margin: 0 0 10px; }
+  .nostory-actions, .error-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+  .error:empty { display: none; }
+  .error { border: 1px solid var(--danger); border-radius: var(--radius-md); padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+  .error p { margin: 0; color: var(--danger); font-weight: 600; }
+  .ask { display: flex; flex-direction: column; gap: 6px; margin-top: 14px; }
+  .ask-label { font-weight: 600; font-size: 14px; }
+  .ask-row { display: flex; gap: 8px; }
+  .ask input { flex: 1; min-width: 0; min-height: 48px; border-radius: var(--radius-md); border: 1px solid var(--border-strong); background: var(--bg-soft); color: var(--text); padding: 0 14px; font: inherit; font-size: 15px; }
+  .ask input::placeholder { color: var(--faint); }
+  .disclaimer { margin: 0; font-size: 12px; color: var(--muted); }
+  .states { display: grid; gap: 12px; }
+  .state { margin: 0; border: 1px solid var(--border); border-radius: var(--radius-md); padding: 12px; display: flex; flex-direction: column; gap: 10px; background: var(--bg-soft); }
+  .state figcaption { font-size: 12px; color: var(--muted); }
+  .code { margin: 0; padding: 16px; border-radius: var(--radius-md); background: var(--bg); border: 1px solid var(--border); overflow-x: auto; font-family: var(--font-mono); font-size: 13px; line-height: 1.6; color: var(--text); }
+  .insp-foot { display: flex; flex-wrap: wrap; gap: 8px; }
+</style>

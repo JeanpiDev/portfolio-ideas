@@ -1,0 +1,99 @@
+---
+/** "Resume mode": the plain, linear version of the site. No JS required. */
+import Base from '../../layouts/Base.astro';
+import Icon from '../../components/Icon.astro';
+import { profile, experience, projects, skills, type Lang } from '../../data/profile';
+import { pieces } from '../../data/pieces';
+import { useTranslations, otherLang } from '../../i18n/ui';
+
+export function getStaticPaths() {
+  return [{ params: { lang: 'en' } }, { params: { lang: 'es' } }];
+}
+const lang = Astro.params.lang as Lang;
+const t = useTranslations(lang);
+---
+<Base lang={lang} page="resume" altPath={`/${otherLang(lang)}/resume/`} title={`${profile.name} · ${t('resume.title')}`}>
+  <main id="main" class="resume">
+    <header id="about" class="r-head">
+      <h1 class="display">{profile.name}</h1>
+      <p class="r-role">{profile.role[lang]} · {profile.location}</p>
+      <p class="r-summary">{profile.summary[lang]}</p>
+    </header>
+
+    <section aria-labelledby="exp-title">
+      <h2 id="exp-title" class="display">{t('resume.experience')}</h2>
+      <ol class="r-list">
+        {experience.map((e) => (
+          <li id={`exp-${e.id}`}>
+            <h3>{e.role[lang]} · {e.company}</h3>
+            <p class="mono r-meta">{e.period}</p>
+            <p>{e.summary[lang]}</p>
+          </li>
+        ))}
+      </ol>
+    </section>
+
+    <section aria-labelledby="proj-title">
+      <h2 id="proj-title" class="display">{t('resume.projects')}</h2>
+      <ul class="r-list">
+        {projects.map((p) => {
+          const own = pieces.filter((x) => x.project === p.id);
+          return (
+            <li id={`project-${p.id}`}>
+              <h3>{p.name[lang]}</h3>
+              <p class="mono r-meta">{p.kind[lang]} · {p.tags.join(' · ')}</p>
+              <p>{p.description[lang]}</p>
+              {(p.repo || p.live) && (
+                <p class="r-links">
+                  {p.repo && <a href={p.repo}>{t('resume.repo')}<span class="sr-only">: {p.name[lang]}</span></a>}
+                  {p.live && <a href={p.live}>{t('resume.live')}<span class="sr-only">: {p.name[lang]}</span></a>}
+                </p>
+              )}
+              {own.length > 0 && (
+                <p class="r-pieces">{t('resume.pieces')}: {own.map((x, i) => (<>{i > 0 && ', '}<a href={`/${lang}/pieces/${x.id}/`}>{x.name[lang]}</a></>))}</p>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+
+    <section id="skills" aria-labelledby="skills-title">
+      <h2 id="skills-title" class="display">{t('resume.skills')}</h2>
+      <dl class="r-skills">
+        {skills.map((s) => (<div><dt>{s.group[lang]}</dt><dd>{s.items.join(' · ')}</dd></div>))}
+      </dl>
+    </section>
+
+    <section id="contact" aria-labelledby="contact-title">
+      <h2 id="contact-title" class="display">{t('resume.contact')}</h2>
+      <p>{t('resume.contactLead')}</p>
+      <p class="r-links">
+        <a class="btn btn-ink" href={`mailto:${profile.email}`}><Icon name="mail" size={16} /> {profile.email}</a>
+        <a class="btn" href={profile.links.github}>GitHub</a>
+        <a class="btn" href={profile.links.linkedin}>LinkedIn</a>
+      </p>
+    </section>
+  </main>
+</Base>
+
+<style>
+  .resume { max-width: 760px; margin: 0 auto; padding: 32px 16px 48px; }
+  .r-head h1 { margin: 0; font-size: clamp(36px, 7vw, 56px); line-height: 1; }
+  .r-role { margin: 8px 0 0; color: var(--muted); }
+  .r-summary { font-size: 18px; }
+  section { margin-top: 40px; }
+  h2 { font-size: 24px; margin: 0 0 12px; }
+  h3 { font-size: 17px; margin: 0; }
+  .r-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 20px; }
+  .r-list li { padding-bottom: 20px; border-bottom: 1px solid var(--border); }
+  .r-list p { margin: 4px 0 0; }
+  .r-meta { font-size: 13px; color: var(--muted); }
+  .r-links { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; }
+  .r-links a:not(.btn) { min-height: 44px; display: inline-flex; align-items: center; }
+  .r-pieces { font-size: 14px; color: var(--muted); }
+  .r-pieces a { color: var(--text); display: inline-block; min-height: 24px; }
+  .r-skills { margin: 0; display: grid; gap: 12px; }
+  .r-skills dt { font-weight: 700; }
+  .r-skills dd { margin: 2px 0 0; color: var(--muted); }
+</style>

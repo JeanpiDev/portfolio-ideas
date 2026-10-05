@@ -1,0 +1,105 @@
+---
+import '../styles/global.css';
+import Icon from '../components/Icon.astro';
+import { profile, type Lang } from '../data/profile';
+import { useTranslations, otherLang } from '../i18n/ui';
+
+interface Props { lang: Lang; title?: string; description?: string; page: 'playground' | 'resume' | 'piece'; altPath: string }
+const { lang, page, altPath } = Astro.props;
+const t = useTranslations(lang);
+const title = Astro.props.title ?? t('meta.title');
+const description = Astro.props.description ?? t('meta.description');
+const canonical = new URL(Astro.url.pathname, Astro.site);
+---
+<!doctype html>
+<html lang={lang}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    <link rel="alternate" hreflang={otherLang(lang)} href={altPath} />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <!-- No-flash theme + motion preference, before first paint. -->
+    <script is:inline>
+      (function () {
+        var d = document.documentElement;
+        d.classList.add('js');
+        try {
+          if (localStorage.getItem('theme') === 'light') d.classList.add('light');
+          var m = localStorage.getItem('motion');
+          var reduce = m ? m === 'reduced' : window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+          if (reduce) d.classList.add('reduce-motion');
+        } catch (e) {
+          if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) d.classList.add('reduce-motion');
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">{t('skip')}</a>
+    <header class="site-header">
+      <a class="brand display" href={`/${lang}/`}>alex<span aria-hidden="true">.</span>playground</a>
+      <slot name="header" />
+      <div class="header-actions">
+        <button type="button" class="btn btn-sm needs-js" data-motion-toggle aria-describedby="motion-desc">
+          {t('nav.motion')}: <b data-motion-label data-full={t('nav.motionFull')} data-reduced={t('nav.motionReduced')}>{t('nav.motionFull')}</b>
+        </button>
+        <span id="motion-desc" class="sr-only">{t('nav.motionFull')} / {t('nav.motionReduced')}</span>
+        <button type="button" class="btn btn-sm needs-js" role="switch" aria-checked="false" data-theme-toggle>
+          <Icon name="sun" size={16} /> <span>{t('nav.theme')}</span>
+        </button>
+        <a class="btn btn-sm" href={altPath} hreflang={otherLang(lang)} lang={otherLang(lang)} aria-label={t('nav.langLabel')}>{otherLang(lang).toUpperCase()}</a>
+        {page === 'playground' ? (
+          <a class="btn btn-sm btn-ink" href={`/${lang}/resume/`}>{t('nav.resume')}</a>
+        ) : (
+          <a class="btn btn-sm btn-ink" href={`/${lang}/`}>{t('nav.playground')}</a>
+        )}
+      </div>
+    </header>
+    <slot />
+    <footer class="site-footer">
+      <p>{t('footer.fictional')}</p>
+      <p>© {profile.name} · {t('footer.credit')}</p>
+    </footer>
+
+    <script>
+      const root = document.documentElement;
+      const themeBtn = document.querySelector<HTMLButtonElement>('[data-theme-toggle]');
+      const syncTheme = () => themeBtn?.setAttribute('aria-checked', String(root.classList.contains('light')));
+      syncTheme();
+      themeBtn?.addEventListener('click', () => {
+        root.classList.toggle('light');
+        try { localStorage.setItem('theme', root.classList.contains('light') ? 'light' : 'dark'); } catch {}
+        syncTheme();
+      });
+
+      const motionBtn = document.querySelector<HTMLButtonElement>('[data-motion-toggle]');
+      const motionLabel = document.querySelector<HTMLElement>('[data-motion-label]');
+      const syncMotion = () => {
+        if (motionLabel) motionLabel.textContent = root.classList.contains('reduce-motion') ? motionLabel.dataset.reduced! : motionLabel.dataset.full!;
+      };
+      syncMotion();
+      motionBtn?.addEventListener('click', () => {
+        root.classList.toggle('reduce-motion');
+        try { localStorage.setItem('motion', root.classList.contains('reduce-motion') ? 'reduced' : 'full'); } catch {}
+        syncMotion();
+        document.dispatchEvent(new CustomEvent('motion-change'));
+      });
+    </script>
+  </body>
+</html>
+
+<style is:global>
+  html:not(.js) .needs-js { display: none !important; }
+  .site-header { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; padding: 12px 16px; border-bottom: 1px solid var(--border); }
+  @media (min-width: 768px) { .site-header { padding: 16px 32px; } }
+  .brand { font-weight: 800; font-size: 20px; text-decoration: none; flex-grow: 1; min-height: 44px; display: inline-flex; align-items: center; }
+  .header-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .site-footer { padding: 32px 16px; border-top: 1px solid var(--border); color: var(--muted); font-size: 13px; display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: space-between; }
+  @media (min-width: 768px) { .site-footer { padding: 32px; } }
+  .site-footer p { margin: 0; }
+</style>

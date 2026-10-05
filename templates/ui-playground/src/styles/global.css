@@ -1,0 +1,111 @@
+/* =============================================================================
+   THEME — re-skin the whole template from this one file.
+
+   - Colour tokens: `:root` is the DARK default, `:root.light` overrides them.
+     The toggle adds/removes `.light` on <html> and persists it in localStorage.
+   - RULE: `--accent` marks AI and only AI (the inspector lens, AI answers,
+     citations). Normal actions use the ink (`--text`). AI elements also carry
+     the spark icon, never colour alone.
+   - Never put text in `--border`; text uses --text / --muted / --faint
+     (all >= 4.5:1 on --bg and --surface).
+   - Radii: 8 / 12 / 16 / 24 / pill.  Spacing: 4px base (Tailwind default).
+   - Motion: 120 / 200 / 320 / 600 ms, easing cubic-bezier(.22,1,.36,1).
+     `prefers-reduced-motion: reduce` OR `html.reduce-motion` (in-page toggle)
+     limit motion to <=150ms opacity fades.
+   - Fonts are self-hosted via @fontsource-variable.
+============================================================================= */
+@import 'tailwindcss';
+@import '@fontsource-variable/bricolage-grotesque';
+@import '@fontsource-variable/figtree';
+@import '@fontsource-variable/jetbrains-mono';
+
+@custom-variant light (&:where(.light, .light *));
+
+:root {
+  --bg:#0f1012; --bg-soft:#141518; --surface:#17181b; --surface-2:#1e2024;
+  --border:#2a2d32; --border-strong:#6b7079;
+  --text:#eceef1; --muted:#a3a8b0; --faint:#8a9099;
+  --accent:#8fd3c4; --accent-ink:#8fd3c4; --accent-contrast:#0f1012;
+  --danger:#f08a72; --focus:var(--text); --glow:rgb(143 211 196 / .14);
+  color-scheme: dark;
+
+  --radius-sm: 8px; --radius-md: 12px; --radius-lg: 16px; --radius-xl: 24px; --radius-pill: 999px;
+  --dur-1: 120ms; --dur-2: 200ms; --dur-3: 320ms; --dur-4: 600ms;
+  --ease: cubic-bezier(.22,1,.36,1);
+  --shadow: 0 14px 28px rgb(0 0 0 / .35);
+}
+:root.light {
+  --bg:#f6f7f8; --bg-soft:#eceef1; --surface:#ffffff; --surface-2:#f1f2f4;
+  --border:#dfe2e6; --border-strong:#7d838c;
+  --text:#16181b; --muted:#555b64; --faint:#656b74;
+  --accent:#1f7a6c; --accent-ink:#1a6b5f; --accent-contrast:#ffffff;
+  --danger:#b3361f; --focus:var(--text); --glow:rgb(31 122 108 / .10);
+  --shadow: 0 14px 28px rgb(22 24 27 / .14);
+  color-scheme: light;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-bg-soft: var(--bg-soft);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-ink: var(--text);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-contrast: var(--accent-contrast);
+  --color-danger: var(--danger);
+  --font-display: 'Bricolage Grotesque Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-sans: 'Figtree Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono Variable', ui-monospace, monospace;
+  --radius-sm: 8px; --radius-md: 12px; --radius-lg: 16px; --radius-xl: 24px;
+}
+
+/* ---------- Base ---------- */
+html { background: var(--bg); color: var(--text); font-family: var(--font-sans); -webkit-text-size-adjust: 100%; }
+body { margin: 0; min-height: 100vh; background: var(--bg); line-height: 1.55; overflow-x: hidden; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+a { color: inherit; text-underline-offset: 3px; }
+.sr-only { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.skip-link { position: absolute; left: 16px; top: -100px; z-index: 100; background: var(--text); color: var(--bg); padding: 12px 16px; border-radius: var(--radius-md); font-weight: 700; }
+.skip-link:focus { top: 12px; }
+.mono { font-family: var(--font-mono); }
+.display { font-family: var(--font-display); }
+
+/* ---------- Buttons (ink, not accent) ---------- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 44px; min-width: 44px; padding: 0 16px; border-radius: var(--radius-md);
+  border: 1px solid var(--border-strong); background: var(--surface); color: var(--text);
+  font: inherit; font-weight: 600; font-size: 14px; text-decoration: none; cursor: pointer; white-space: nowrap;
+  transition: background-color var(--dur-1) var(--ease), border-color var(--dur-1) var(--ease);
+}
+.btn:hover { background: var(--surface-2); border-color: var(--text); }
+.btn[disabled], .btn[aria-disabled='true'] { opacity: .6; cursor: not-allowed; }
+.btn-ink { background: var(--text); color: var(--bg); border-color: var(--text); }
+.btn-ink:hover { background: var(--muted); border-color: var(--muted); }
+.btn-sm { min-height: 44px; padding: 0 12px; font-size: 13px; }
+
+/* ---------- AI marker (accent + spark) ---------- */
+.ai-label { display: inline-flex; align-items: center; gap: 6px; color: var(--accent-ink); font-family: var(--font-mono); font-size: 12px; }
+.ai-card { border: 1px solid var(--accent); background: var(--glow); border-radius: var(--radius-lg); }
+
+/* ---------- Switch ---------- */
+.switch-track { position: relative; display: inline-block; width: 44px; height: 24px; border-radius: 12px; background: var(--surface-2); border: 1px solid var(--border-strong); flex: none; }
+.switch-thumb { position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: var(--muted); transition: transform var(--dur-2) var(--ease), background-color var(--dur-2) var(--ease); }
+[aria-checked='true'] > .switch-track, [aria-pressed='true'] > .switch-track { background: var(--text); border-color: var(--text); }
+[aria-checked='true'] > .switch-track .switch-thumb, [aria-pressed='true'] > .switch-track .switch-thumb { transform: translateX(20px); background: var(--bg); }
+
+/* ---------- Reduced motion: system preference OR in-page toggle ---------- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 1ms !important; animation-iteration-count: 1 !important; transition-property: opacity !important; transition-duration: 150ms !important; scroll-behavior: auto !important; }
+}
+html.reduce-motion *, html.reduce-motion *::before, html.reduce-motion *::after {
+  animation-duration: 1ms !important; animation-iteration-count: 1 !important;
+  transition-property: opacity !important; transition-duration: 150ms !important; scroll-behavior: auto !important;
+}
+html:not(.reduce-motion) { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html:not(.reduce-motion) { scroll-behavior: auto; } }
