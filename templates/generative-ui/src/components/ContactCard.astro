@@ -1,0 +1,24 @@
+---
+/** <ContactCard /> — email, links, location and the static resume. */
+import Icon from './Icon.astro';
+import { person, type Lang } from '../data/profile';
+import { useTranslations } from '../i18n/ui';
+interface Props { lang: Lang }
+const { lang } = Astro.props;
+const t = useTranslations(lang);
+---
+<section data-component="contact" class="card flex flex-col gap-3 p-5">
+  <h3 class="text-lg font-semibold">{t('comp.contact')}</h3>
+  <dl class="m-0 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
+    <dt class="text-muted">{t('comp.email')}</dt>
+    <dd class="m-0"><a href={`mailto:${person.email}`}>{person.email}</a></dd>
+    <dt class="text-muted">{t('comp.location')}</dt>
+    <dd class="m-0">{person.location[lang]}</dd>
+  </dl>
+  <div class="flex flex-wrap gap-2">
+    <a class="btn btn-solid" href={`mailto:${person.email}`}><Icon name="mail" size={16} />{t('comp.email')}</a>
+    <a class="btn" href={person.links.github}>GitHub</a>
+    <a class="btn" href={person.links.linkedin}>LinkedIn</a>
+    <a class="btn" href={`/${lang}/resume`}><Icon name="doc" size={16} />{t('nav.resume')}</a>
+  </div>
+</section>

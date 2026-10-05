@@ -1,0 +1,65 @@
+---
+/**
+ * <SkillsMatrix /> — "skills by project", derived from project tags.
+ * Replaces a self-rated radar: each mark is evidence (a project that uses the skill).
+ * The client can filter to one group by removing other `tbody[data-group]`.
+ */
+import { projects, skillsByProject, type Lang } from '../data/profile';
+import { useTranslations } from '../i18n/ui';
+interface Props { lang: Lang }
+const { lang } = Astro.props;
+const t = useTranslations(lang);
+const { rows, withoutEvidence } = skillsByProject();
+---
+<section data-component="skills" class="card p-5">
+  <h3 class="mb-3 text-lg font-semibold">{t('comp.skills')}</h3>
+  <div class="scroll-x" role="region" aria-label={`${t('comp.skills')} — ${t('comp.scrollHint')}`} tabindex="0">
+    <table class="matrix">
+      <caption>{t('comp.skillsCaption')}</caption>
+      <thead>
+        <tr>
+          <th scope="col" class="text-left">{t('comp.skill')}</th>
+          {projects.map((p) => <th scope="col">{p.name[lang]}</th>)}
+          <th scope="col">{t('comp.count')}</th>
+        </tr>
+      </thead>
+      {
+        rows.map(({ group, skills }) => (
+          <tbody data-group={group.id}>
+            <tr>
+              <th scope="colgroup" colspan={projects.length + 2} class="grp">
+                {group.label[lang]}
+              </th>
+            </tr>
+            {skills.map((row) => (
+              <tr>
+                <th scope="row" class="font-medium">{row.skill}</th>
+                {projects.map((p) =>
+                  row.projectIds.includes(p.id) ? (
+                    <td>
+                      <span class="mark" aria-hidden="true" />
+                      <span class="sr-only">{t('comp.used', { project: p.name[lang] })}</span>
+                    </td>
+                  ) : (
+                    <td>
+                      <span class="none" aria-hidden="true">–</span>
+                      <span class="sr-only">{t('comp.notUsed')}</span>
+                    </td>
+                  ),
+                )}
+                <td class="font-mono">{row.projectIds.length}</td>
+              </tr>
+            ))}
+          </tbody>
+        ))
+      }
+    </table>
+  </div>
+  {
+    withoutEvidence.length > 0 && (
+      <p class="m-0 mt-3 text-sm text-muted" data-no-evidence>
+        {t('comp.noEvidence')} {withoutEvidence.join(', ')}
+      </p>
+    )
+  }
+</section>

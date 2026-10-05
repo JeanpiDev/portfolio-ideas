@@ -1,0 +1,105 @@
+---
+/**
+ * Classic resume: a plain, static page with everything the assistant knows.
+ * It is the no-JS / API-down fallback and the target of every citation
+ * (anchors match the source ids in profile.ts).
+ */
+import Base from '../../layouts/Base.astro';
+import Icon from '../../components/Icon.astro';
+import { langPaths } from '../../lib/i18n';
+import { useTranslations } from '../../i18n/ui';
+import { experience, person, projects, skills, skillsByProject, type Lang } from '../../data/profile';
+
+export const getStaticPaths = langPaths;
+const lang = Astro.params.lang as Lang;
+const t = useTranslations(lang);
+const { withoutEvidence } = skillsByProject();
+---
+<Base lang={lang} title={t('meta.resumeTitle')} description={person.summary[lang]} path="resume">
+  <article class="mx-auto flex max-w-[760px] flex-col gap-10 pt-6">
+    <header class="flex flex-col gap-3">
+      <p class="eyebrow m-0">{t('resume.heading')}</p>
+      <h1 class="text-4xl font-semibold sm:text-5xl">{person.name}</h1>
+      <p class="m-0 text-lg text-muted">{person.role[lang]} · {person.location[lang]}</p>
+      <div class="no-print flex flex-wrap gap-2">
+        <a class="btn" href={`/${lang}/`}>
+          <Icon name="spark" size={14} class="text-accent-ink" />{t('resume.back')}
+        </a>
+        <button type="button" class="btn" onclick="window.print()">
+          <Icon name="doc" size={16} />{t('resume.print')}
+        </button>
+      </div>
+    </header>
+
+    <section id="profile-summary" aria-labelledby="h-summary" class="flex scroll-mt-6 flex-col gap-2">
+      <h2 id="h-summary" class="text-2xl font-semibold">{t('resume.summary')}</h2>
+      <p class="m-0">{person.summary[lang]}</p>
+      <p class="m-0 text-muted">{person.availability[lang]}</p>
+    </section>
+
+    <section id="experience" aria-labelledby="h-exp" class="flex scroll-mt-6 flex-col gap-4">
+      <h2 id="h-exp" class="text-2xl font-semibold">{t('resume.experience')}</h2>
+      {
+        experience.map((e) => (
+          <div id={`experience-${e.id}`} class="scroll-mt-6">
+            <p class="m-0 font-mono text-xs text-muted">
+              {e.start} – {e.end ?? t('comp.present')}
+            </p>
+            <h3 class="text-lg font-semibold">
+              {e.role[lang]} · {e.company}
+            </h3>
+            <p class="m-0 text-muted">{e.summary[lang]}</p>
+          </div>
+        ))
+      }
+    </section>
+
+    <section id="projects" aria-labelledby="h-proj" class="flex scroll-mt-6 flex-col gap-4">
+      <h2 id="h-proj" class="text-2xl font-semibold">{t('resume.projects')}</h2>
+      {
+        projects.map((p) => (
+          <div id={`projects-${p.id}`} class="card scroll-mt-6 p-5">
+            <p class="eyebrow m-0">{p.kind[lang]}</p>
+            <h3 class="text-lg font-semibold">{p.name[lang]}</h3>
+            <p class="m-0">{p.description[lang]}</p>
+            <p class="m-0 mt-1 text-sm text-muted">{p.outcome[lang]}</p>
+            <p class="m-0 mt-2 font-mono text-xs text-muted">
+              <span class="sr-only">{t('resume.tags')}: </span>
+              {p.tags.join(' · ')}
+            </p>
+            {(p.repo || p.live) && (
+              <p class="m-0 mt-2 flex gap-4 text-sm">
+                {p.repo && <a class="inline-flex min-h-11 items-center" href={p.repo}>{t('comp.code')}<span class="sr-only">: {p.name[lang]}</span></a>}
+                {p.live && <a class="inline-flex min-h-11 items-center" href={p.live}>{t('comp.live')}<span class="sr-only">: {p.name[lang]}</span></a>}
+              </p>
+            )}
+          </div>
+        ))
+      }
+    </section>
+
+    <section id="skills" aria-labelledby="h-skills" class="flex scroll-mt-6 flex-col gap-4">
+      <h2 id="h-skills" class="text-2xl font-semibold">{t('resume.skills')}</h2>
+      <dl class="m-0 flex flex-col gap-3">
+        {
+          skills.map((g) => (
+            <div id={`skills-${g.id}`} class="scroll-mt-6">
+              <dt class="font-semibold">{g.label[lang]}</dt>
+              <dd class="m-0 text-muted">{g.items.join(', ')}</dd>
+            </div>
+          ))
+        }
+      </dl>
+      {withoutEvidence.length > 0 && <p class="m-0 text-sm text-muted">{t('comp.noEvidence')} {withoutEvidence.join(', ')}</p>}
+    </section>
+
+    <section id="contact" aria-labelledby="h-contact" class="flex scroll-mt-6 flex-col gap-2">
+      <h2 id="h-contact" class="text-2xl font-semibold">{t('resume.contact')}</h2>
+      <ul class="m-0 flex list-none flex-col gap-1 p-0">
+        <li><a class="inline-flex min-h-11 items-center" href={`mailto:${person.email}`}>{person.email}</a></li>
+        <li><a class="inline-flex min-h-11 items-center" href={person.links.github}>GitHub</a></li>
+        <li><a class="inline-flex min-h-11 items-center" href={person.links.linkedin}>LinkedIn</a></li>
+      </ul>
+    </section>
+  </article>
+</Base>

@@ -1,0 +1,35 @@
+---
+/** <Timeline /> — experience as an ordered list, most recent first. */
+import { experience, type Lang } from '../data/profile';
+import { useTranslations } from '../i18n/ui';
+interface Props { lang: Lang }
+const { lang } = Astro.props;
+const t = useTranslations(lang);
+---
+<section data-component="timeline" class="card p-5">
+  <h3 class="mb-4 text-lg font-semibold" data-heading>{t('comp.timeline')}</h3>
+  <ol class="m-0 flex list-none flex-col gap-0 p-0">
+    {
+      experience.map((e, i) => (
+        <li class="relative grid grid-cols-[20px_1fr] gap-3 pb-5 last:pb-0">
+          <span aria-hidden="true" class="relative flex justify-center">
+            <span
+              class="mt-1.5 block h-3 w-3 rounded-full"
+              style={i === 0 ? 'background:var(--text);box-shadow:0 0 0 4px var(--surface-2)' : 'background:var(--border-strong)'}
+            />
+            {i < experience.length - 1 && <span class="absolute top-5 bottom-[-4px] w-px bg-border" />}
+          </span>
+          <div>
+            <p class="m-0 font-mono text-xs text-muted">
+              {e.start} – {e.end ?? t('comp.present')}
+            </p>
+            <h4 class="text-base font-semibold">
+              {e.role[lang]} · {e.company}
+            </h4>
+            <p class="m-0 text-sm text-muted">{e.summary[lang]}</p>
+          </div>
+        </li>
+      ))
+    }
+  </ol>
+</section>

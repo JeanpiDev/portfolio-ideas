@@ -1,0 +1,14 @@
+---
+import Base from '../../layouts/Base.astro';
+import Chat from '../../components/Chat.astro';
+import { langPaths } from '../../lib/i18n';
+import { useTranslations } from '../../i18n/ui';
+import type { Lang } from '../../data/profile';
+
+export const getStaticPaths = langPaths;
+const lang = Astro.params.lang as Lang;
+const t = useTranslations(lang);
+---
+<Base lang={lang} title={t('meta.title')} description={t('meta.description')}>
+  <Chat lang={lang} />
+</Base>

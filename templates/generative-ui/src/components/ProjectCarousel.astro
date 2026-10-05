@@ -1,0 +1,118 @@
+---
+/**
+ * <ProjectCarousel /> — region with an accessible name, prev/next buttons,
+ * no autoplay, keyboard operable (buttons + arrow keys on the region).
+ * Without JS it degrades to a horizontally scrollable list.
+ * The client clones this markup from a <template> and removes cards whose
+ * `data-project` id was not requested by the model.
+ */
+import Icon from './Icon.astro';
+import ProjectThumb from './ProjectThumb.astro';
+import { projects, type Lang, type Project } from '../data/profile';
+import { useTranslations } from '../i18n/ui';
+
+interface Props { lang: Lang; items?: Project[] }
+const { lang, items = projects } = Astro.props;
+const t = useTranslations(lang);
+---
+<project-carousel data-component="projects">
+  <section aria-label={t('comp.projectsCarousel')} class="flex flex-col gap-3" data-carousel-region>
+    <div class="flex items-center gap-2">
+      <h3 class="mr-auto text-lg font-semibold">{t('comp.projects')}</h3>
+      <div class="carousel-nav flex gap-2">
+        <button type="button" class="btn icon-btn" data-prev aria-label={t('comp.prev')}><Icon name="left" /></button>
+        <button type="button" class="btn icon-btn" data-next aria-label={t('comp.next')}><Icon name="right" /></button>
+      </div>
+    </div>
+    <ul class="carousel-track" data-track>
+      {
+        items.map((p) => (
+          <li data-project={p.id}>
+            <article class="card flex h-full flex-col overflow-hidden">
+              <ProjectThumb visual={p.visual} />
+              <div class="flex flex-1 flex-col gap-1 p-4">
+                <span class="eyebrow">{p.kind[lang]}</span>
+                <h4 class="text-base font-semibold">{p.name[lang]}</h4>
+                <p class="m-0 text-sm text-muted">{p.description[lang]}</p>
+                <p class="m-0 mt-1 font-mono text-xs text-muted">{p.tags.join(' · ')}</p>
+                <div class="mt-auto flex flex-wrap gap-x-4 pt-2">
+                  <a class="inline-flex min-h-11 items-center gap-1 text-sm font-semibold" href={`/${lang}/resume#projects-${p.id}`}>
+                    {t('comp.caseStudy')}<span class="sr-only">: {p.name[lang]}</span>
+                    <Icon name="arrow" size={14} />
+                  </a>
+                  {p.repo && (
+                    <a class="inline-flex min-h-11 items-center text-sm text-muted" href={p.repo}>
+                      {t('comp.code')}<span class="sr-only">: {p.name[lang]}</span>
+                    </a>
+                  )}
+                  {p.live && (
+                    <a class="inline-flex min-h-11 items-center text-sm text-muted" href={p.live}>
+                      {t('comp.live')}<span class="sr-only">: {p.name[lang]}</span>
+                    </a>
+                  )}
+                </div>
+              </div>
+            </article>
+          </li>
+        ))
+      }
+    </ul>
+  </section>
+</project-carousel>
+
+<script>
+  const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  class ProjectCarousel extends HTMLElement {
+    #track!: HTMLElement;
+    #prev!: HTMLButtonElement;
+    #next!: HTMLButtonElement;
+
+    connectedCallback() {
+      const track = this.querySelector<HTMLElement>('[data-track]');
+      const prev = this.querySelector<HTMLButtonElement>('[data-prev]');
+      const next = this.querySelector<HTMLButtonElement>('[data-next]');
+      if (!track || !prev || !next) return;
+      this.#track = track;
+      this.#prev = prev;
+      this.#next = next;
+      prev.addEventListener('click', () => this.go(-1));
+      next.addEventListener('click', () => this.go(1));
+      this.querySelector('[data-carousel-region]')?.addEventListener('keydown', (e) => {
+        const ev = e as KeyboardEvent;
+        // Arrow keys move between cards unless the user is typing somewhere.
+        if (ev.key === 'ArrowLeft' || ev.key === 'ArrowRight') {
+          ev.preventDefault();
+          this.go(ev.key === 'ArrowLeft' ? -1 : 1);
+        }
+      });
+      track.addEventListener('scroll', () => this.update(), { passive: true });
+      requestAnimationFrame(() => this.update());
+    }
+
+    refresh() {
+      this.update();
+    }
+
+    go(dir: -1 | 1) {
+      const card = this.#track.querySelector('li');
+      const step = card ? card.getBoundingClientRect().width + 14 : this.#track.clientWidth;
+      this.#track.scrollBy({ left: dir * step, behavior: reduced() ? 'auto' : 'smooth' });
+    }
+
+    update() {
+      const { scrollLeft, scrollWidth, clientWidth } = this.#track;
+      const atStart = scrollLeft <= 2;
+      const atEnd = scrollLeft + clientWidth >= scrollWidth - 2;
+      // Keep the buttons focusable when they reach an end (no focus loss); only mark them.
+      this.#prev.setAttribute('aria-disabled', String(atStart));
+      this.#next.setAttribute('aria-disabled', String(atEnd));
+      this.#prev.style.opacity = atStart ? '.45' : '';
+      this.#next.style.opacity = atEnd ? '.45' : '';
+      // Hide the nav when everything fits.
+      const nav = this.querySelector<HTMLElement>('.carousel-nav');
+      if (nav) nav.style.visibility = atStart && atEnd ? 'hidden' : '';
+    }
+  }
+  if (!customElements.get('project-carousel')) customElements.define('project-carousel', ProjectCarousel);
+</script>

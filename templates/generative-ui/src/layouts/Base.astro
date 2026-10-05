@@ -1,0 +1,111 @@
+---
+import '../styles/global.css';
+import Icon from '../components/Icon.astro';
+import { person, type Lang } from '../data/profile';
+import { useTranslations, languages } from '../i18n/ui';
+
+interface Props {
+  lang: Lang;
+  title: string;
+  description: string;
+  /** Path after the locale, e.g. '' or 'resume', used for the language switcher. */
+  path?: string;
+}
+const { lang, title, description, path = '' } = Astro.props;
+const t = useTranslations(lang);
+const canonical = new URL(`/${lang}/${path}`, Astro.site);
+const altLang: Lang = lang === 'en' ? 'es' : 'en';
+---
+<!doctype html>
+<html lang={lang}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    <link rel="alternate" hreflang={altLang} href={new URL(`/${altLang}/${path}`, Astro.site)} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta name="theme-color" content="#0f1012" />
+    <!-- Apply the saved theme before first paint (no flash). Dark is the default. -->
+    <script is:inline>
+      try {
+        if (localStorage.getItem('theme') === 'light') document.documentElement.classList.add('light');
+      } catch (_) {}
+    </script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">{t('nav.skip')}</a>
+    <header class="mx-auto flex max-w-[1280px] flex-wrap items-center gap-x-4 gap-y-2 px-4 py-4 sm:px-8 no-print">
+      <a href={`/${lang}/`} class="mr-auto flex min-h-11 items-center font-display text-xl font-bold no-underline">
+        alex<span aria-hidden="true" class="text-muted">.</span>moreno
+        <span class="sr-only">— {t('nav.home')}</span>
+      </a>
+      <nav aria-label={t('nav.label')} class="flex items-center gap-1">
+        <a href={`/${lang}/resume`} class="btn border-transparent px-3 text-sm font-medium text-muted hover:text-text">
+          <Icon name="doc" size={16} />{t('nav.resume')}
+        </a>
+        {
+          (Object.keys(languages) as Lang[]).map((l) => (
+            <a
+              href={`/${l}/${path}`}
+              hreflang={l}
+              lang={l}
+              aria-current={l === lang ? 'page' : undefined}
+              class:list={[
+                'btn border-transparent px-2 text-sm uppercase',
+                l === lang ? 'text-text underline' : 'font-medium text-muted',
+              ]}
+            >
+              <span aria-hidden="true">{l}</span>
+              <span class="sr-only">{languages[l]}</span>
+            </a>
+          ))
+        }
+      </nav>
+      <button
+        type="button"
+        class="btn icon-btn"
+        data-theme-toggle
+        data-label-light={t('nav.themeToLight')}
+        data-label-dark={t('nav.themeToDark')}
+        aria-label={t('nav.themeToLight')}
+      >
+        <span class="theme-icon-moon"><Icon name="moon" size={16} /></span>
+        <span class="theme-icon-sun hidden"><Icon name="sun" size={16} /></span>
+      </button>
+    </header>
+
+    <main id="main" tabindex="-1" class="mx-auto max-w-[1280px] px-4 pb-16 sm:px-8">
+      <slot />
+    </main>
+
+    <footer class="mx-auto max-w-[1280px] border-t border-border px-4 py-8 text-sm text-muted sm:px-8">
+      <p class="m-0">{person.name} · {person.role[lang]} · {person.location[lang]}</p>
+      <p class="m-0">{t('footer.fictional')} {t('footer.credits')}</p>
+    </footer>
+
+    <script>
+      // Theme toggle: flips `.light` on <html> and persists the choice.
+      const root = document.documentElement;
+      const btn = document.querySelector<HTMLButtonElement>('[data-theme-toggle]');
+      const sync = () => {
+        if (!btn) return;
+        const light = root.classList.contains('light');
+        btn.setAttribute('aria-label', (light ? btn.dataset.labelDark : btn.dataset.labelLight) ?? '');
+        btn.querySelector('.theme-icon-moon')?.classList.toggle('hidden', light);
+        btn.querySelector('.theme-icon-sun')?.classList.toggle('hidden', !light);
+      };
+      btn?.addEventListener('click', () => {
+        const light = root.classList.toggle('light');
+        try {
+          localStorage.setItem('theme', light ? 'light' : 'dark');
+        } catch {}
+        sync();
+      });
+      sync();
+    </script>
+  </body>
+</html>
