@@ -15,6 +15,23 @@ and ship it.
 | 04 | [`chat-playground`](templates/chat-playground) | A conversational hero for people in a hurry, a playground for people who want to explore. | The same assistant answers in the chat and in the playground, and can send a component from one to the other. |
 | 05 | [`editorial-terminal`](templates/editorial-terminal) | A classic one-page portfolio with editorial type and a terminal-prompt motif. The simplest one to adapt. | An assistant modal with streaming answers, conversational memory and a one-click "recruiter mode" pitch. |
 
+## Previews
+
+<table>
+  <tr>
+    <td width="50%"><a href="templates/desktop-os"><img src="templates/desktop-os/preview.png" alt="desktop-os: a portfolio styled as an early-2000s desktop, with a Projects explorer window, desktop icons, a taskbar and an AI helper speaking in a yellow balloon tip"></a><br><b>01 · desktop-os</b></td>
+    <td width="50%"><!-- ui-playground --></td>
+  </tr>
+  <tr>
+    <td width="50%"><a href="templates/generative-ui"><img src="templates/generative-ui/preview.png" alt="generative-ui: a chat-first landing page with suggested questions, a pre-rendered sample answer with citations, a sources panel and a recruiter mode card"></a><br><b>03 · generative-ui</b></td>
+    <td width="50%"><a href="templates/chat-playground"><img src="templates/chat-playground/preview.png" alt="chat-playground: a hero with an inline AI chat next to a sample answer card showing a loan simulator component and a Send it to the playground button"></a><br><b>04 · chat-playground</b></td>
+  </tr>
+  <tr>
+    <td width="50%"><!-- editorial-terminal --></td>
+    <td width="50%"></td>
+  </tr>
+</table>
+
 ## Quick start
 
 ```bash
