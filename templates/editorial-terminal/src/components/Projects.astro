@@ -1,0 +1,89 @@
+---
+import { getLangFromUrl, useTranslations } from '../i18n/utils';
+import { profile, projects } from '../data/profile';
+import Icon from './Icon.astro';
+import TechBadge from './TechBadge.astro';
+import Carousel from './Carousel.astro';
+
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
+---
+
+<section id="projects" class="scroll-mt-24 py-24">
+  <div class="container-page">
+    <div class="reveal flex flex-wrap items-end justify-between gap-4">
+      <div>
+        <p class="eyebrow">03 — {t('nav.projects')}</p>
+        <h2 class="section-title">{t('projects.title')}</h2>
+      </div>
+      <a
+        href={profile.links.github}
+        target="_blank"
+        rel="noopener noreferrer"
+        class="flex min-h-11 items-center gap-2 font-mono text-sm text-[var(--muted)] hover:text-[var(--text)]"
+      >
+        <Icon name="github" size={16} />
+        <span class="link-underline nav-label">{t('projects.viewGithub')}</span>
+      </a>
+    </div>
+
+    <p class="reveal mt-4 text-lg text-[var(--muted)]">{t('projects.intro')}</p>
+
+    <div class="mt-10 grid gap-6 sm:grid-cols-2">
+      {
+        projects.map((p, i) => (
+          <article
+            id={`project-${p.id}`}
+            class:list={['reveal card flex scroll-mt-28 flex-col overflow-hidden', p.featured && 'sm:col-span-2']}
+            style={`transition-delay: ${i * 0.08}s`}
+          >
+            <div class="border-b border-[var(--border)]">
+              <Carousel project={p} lang={lang} />
+            </div>
+
+            <div class="flex flex-1 flex-col p-6">
+              <p class="label-mono">{p.kind[lang]}</p>
+              <div class="mt-2 flex items-start justify-between gap-3">
+                <h3 class="text-2xl">{p.name[lang]}</h3>
+                <div class="-mr-3 -mt-2 flex shrink-0 items-center">
+                  {p.repo && (
+                    <a href={p.repo} target="_blank" rel="noopener noreferrer" class="icon-btn" aria-label={`${p.name[lang]} — ${t('projects.repo')}`}>
+                      <Icon name="github" size={18} />
+                    </a>
+                  )}
+                  {p.live && (
+                    <a href={p.live} target="_blank" rel="noopener noreferrer" class="icon-btn" aria-label={`${p.name[lang]} — ${t('projects.viewProject')}`}>
+                      <Icon name="external" size={18} />
+                    </a>
+                  )}
+                </div>
+              </div>
+
+              <p class="mt-3 flex-1 leading-relaxed text-[var(--muted)]">{p.description[lang]}</p>
+
+              <div class="mt-5 flex flex-wrap gap-2">
+                {p.tags.map((tag) => (
+                  <TechBadge name={tag} />
+                ))}
+              </div>
+
+              <!-- AI: opens the assistant with this project as context. -->
+              <div class="mt-5">
+                <button
+                  type="button"
+                  class="chip-ai"
+                  data-ask-open
+                  data-ask-project={p.id}
+                  data-ask-question={t('ask.aboutProject', { project: p.name[lang] })}
+                >
+                  <Icon name="spark" size={13} />
+                  {t('projects.askAbout')}
+                </button>
+              </div>
+            </div>
+          </article>
+        ))
+      }
+    </div>
+  </div>
+</section>

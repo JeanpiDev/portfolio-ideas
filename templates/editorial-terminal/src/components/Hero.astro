@@ -1,0 +1,80 @@
+---
+import { getLangFromUrl, useTranslations } from '../i18n/utils';
+import { SOCIALS } from '../config';
+import { profile } from '../data/profile';
+import Icon from './Icon.astro';
+
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
+const base = `/${lang}`;
+---
+
+<section id="home" class="relative flex min-h-[92vh] items-center overflow-hidden pt-28 pb-16">
+  <div class="container-page">
+    <!-- Terminal prompt motif -->
+    <p class="animate-in font-mono text-sm text-[var(--muted)]" style="animation-delay: 0.05s">
+      <span class="text-[var(--text)]">visitor@{profile.handle}</span>:<span>~</span>${' '}<span class="text-[var(--text)]">whoami</span><span class="cursor-blink text-[var(--text)]" aria-hidden="true">▊</span>
+    </p>
+
+    <p class="animate-in mt-8 text-lg text-[var(--muted)]" style="animation-delay: 0.15s">
+      {t('hero.greeting')}
+    </p>
+
+    <h1 class="animate-in mt-2 text-[clamp(3rem,12vw,7.5rem)] leading-[0.95]" style="animation-delay: 0.25s">
+      {profile.name}
+    </h1>
+
+    <p class="animate-in mt-5 font-mono text-base tracking-tight text-[var(--text)] sm:text-lg" style="animation-delay: 0.35s">
+      <span class="text-[var(--faint)]">&lt;</span>{profile.role[lang]}<span class="text-[var(--faint)]"> /&gt;</span>
+    </p>
+
+    <p class="animate-in mt-8 max-w-xl text-lg leading-relaxed text-[var(--muted)]" style="animation-delay: 0.45s">
+      {profile.tagline[lang]}
+    </p>
+
+    <div class="animate-in mt-10 flex flex-wrap items-center gap-3 sm:gap-4" style="animation-delay: 0.55s">
+      <a href={`${base}/#contact`} class="btn btn-primary">
+        {t('hero.cta.contact')}
+        <Icon name="arrowRight" size={16} />
+      </a>
+      <button type="button" data-ask-open class="btn btn-ai">
+        <Icon name="spark" size={16} />
+        {t('hero.cta.ask')}
+      </button>
+      {
+        profile.cvUrl && (
+          <a href={profile.cvUrl} target="_blank" rel="noopener noreferrer" class="btn btn-ghost">
+            <Icon name="download" size={16} />
+            {t('hero.cta.cv')}
+          </a>
+        )
+      }
+      <a href={`${base}/#experience`} class="btn btn-ghost">{t('hero.cta.experience')}</a>
+    </div>
+
+    <div class="animate-in mt-10 -ml-3 flex items-center gap-1" style="animation-delay: 0.65s">
+      {
+        SOCIALS.map((s) => (
+          <a
+            href={s.href}
+            target={s.icon === 'mail' ? undefined : '_blank'}
+            rel={s.icon === 'mail' ? undefined : 'noopener noreferrer'}
+            class="icon-btn"
+            aria-label={s.name}
+          >
+            <Icon name={s.icon} size={20} />
+          </a>
+        ))
+      }
+    </div>
+  </div>
+
+  <!-- Scroll hint (static: no infinite animation) -->
+  <a
+    href={`${base}/#about`}
+    class="icon-btn absolute bottom-6 left-1/2 hidden -translate-x-1/2 md:inline-grid"
+    aria-label={t('hero.scroll')}
+  >
+    <Icon name="arrowDown" size={22} />
+  </a>
+</section>

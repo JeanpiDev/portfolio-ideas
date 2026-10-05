@@ -1,0 +1,20 @@
+---
+import { getLangFromUrl, otherLang, switchLangPath, useTranslations } from '../i18n/utils';
+
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
+const target = otherLang(lang);
+const href = switchLangPath(Astro.url, target);
+---
+
+<a
+  href={href}
+  class="inline-flex h-11 items-center gap-1.5 rounded-lg border border-[var(--border-strong)] px-3 font-mono text-xs uppercase tracking-widest transition-colors hover:border-[var(--text)]"
+  aria-label={t('nav.switchLang')}
+  hreflang={target}
+  lang={target}
+>
+  <span class="text-[var(--text)]" aria-hidden="true">{lang}</span>
+  <span class="text-[var(--faint)]" aria-hidden="true">/</span>
+  <span class="text-[var(--muted)]" aria-hidden="true">{target}</span>
+</a>

@@ -1,0 +1,35 @@
+---
+import { getLangFromUrl, useTranslations } from '../i18n/utils';
+import { skills } from '../data/profile';
+import TechBadge from './TechBadge.astro';
+import Icon from './Icon.astro';
+
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
+---
+
+<section id="skills" class="scroll-mt-24 py-24">
+  <div class="container-page">
+    <p class="eyebrow reveal">04 — {t('nav.skills')}</p>
+    <h2 class="section-title reveal">{t('skills.title')}</h2>
+    <p class="reveal mt-4 text-lg text-[var(--muted)]">{t('skills.intro')}</p>
+
+    <div class="mt-12 grid gap-6 sm:grid-cols-2">
+      {
+        skills.map((cat, i) => (
+          <div class="reveal card p-6" style={`transition-delay: ${i * 0.08}s`}>
+            <h3 class="label-mono flex items-center gap-2">
+              {cat.id === 'ai' && <Icon name="spark" size={12} class="text-[var(--accent-ink)]" />}
+              {cat.label[lang]}
+            </h3>
+            <div class="mt-4 flex flex-wrap gap-2">
+              {cat.items.map((s) => (
+                <TechBadge name={s} />
+              ))}
+            </div>
+          </div>
+        ))
+      }
+    </div>
+  </div>
+</section>

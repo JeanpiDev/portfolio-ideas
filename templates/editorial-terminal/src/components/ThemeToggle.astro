@@ -1,0 +1,40 @@
+---
+import Icon from './Icon.astro';
+import { getLangFromUrl, useTranslations } from '../i18n/utils';
+
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
+---
+
+<button
+  id="theme-toggle"
+  type="button"
+  class="icon-btn icon-btn-bordered"
+  aria-label={t('nav.toggleTheme')}
+  aria-pressed="false"
+  title={t('nav.toggleTheme')}
+>
+  <span class="theme-icon-dark"><Icon name="moon" size={17} /></span>
+  <span class="theme-icon-light hidden"><Icon name="sun" size={17} /></span>
+</button>
+
+<script is:inline>
+  (function () {
+    var btn = document.getElementById('theme-toggle');
+    if (!btn) return;
+    var root = document.documentElement;
+    function sync() {
+      var isLight = root.classList.contains('light');
+      btn.querySelector('.theme-icon-dark').classList.toggle('hidden', isLight);
+      btn.querySelector('.theme-icon-light').classList.toggle('hidden', !isLight);
+      // Pressed = light theme on.
+      btn.setAttribute('aria-pressed', String(isLight));
+    }
+    sync();
+    btn.addEventListener('click', function () {
+      var isLight = root.classList.toggle('light');
+      try { localStorage.setItem('theme', isLight ? 'light' : 'dark'); } catch (e) {}
+      sync();
+    });
+  })();
+</script>

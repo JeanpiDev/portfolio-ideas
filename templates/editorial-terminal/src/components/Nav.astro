@@ -1,0 +1,76 @@
+---
+import { getLangFromUrl, useTranslations } from '../i18n/utils';
+import { profile } from '../data/profile';
+import ThemeToggle from './ThemeToggle.astro';
+import LangSwitch from './LangSwitch.astro';
+import Icon from './Icon.astro';
+
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
+const base = `/${lang}`;
+const [first, ...rest] = profile.name.toLowerCase().split(' ');
+
+const links = [
+  { href: `${base}/#about`, label: t('nav.about'), n: '01', id: 'about' },
+  { href: `${base}/#experience`, label: t('nav.experience'), n: '02', id: 'experience' },
+  { href: `${base}/#projects`, label: t('nav.projects'), n: '03', id: 'projects' },
+  { href: `${base}/#skills`, label: t('nav.skills'), n: '04', id: 'skills' },
+  { href: `${base}/#contact`, label: t('nav.contact'), n: '05', id: 'contact' },
+];
+---
+
+<header id="site-nav" class="fixed inset-x-0 top-0 z-40 border-b border-transparent">
+  <div class="mx-auto flex w-full max-w-6xl items-center justify-between gap-3 px-4 py-2 sm:px-6">
+    <!-- Logo in the terminal motif: ~/first.last -->
+    <a href={`${base}/`} class="flex min-h-11 shrink-0 items-center font-mono text-sm font-medium tracking-tight">
+      <span class="text-[var(--muted)]">~/</span>{first}<span class="text-[var(--muted)]"
+        >{rest.length ? `.${rest.join('.')}` : ''}</span
+      >
+    </a>
+
+    <nav class="hidden items-center gap-5 md:flex lg:gap-7" aria-label={t('nav.primary')}>
+      {
+        links.map((l) => (
+          <a
+            href={l.href}
+            data-nav-link={l.id}
+            class="nav-link flex min-h-11 items-center gap-1.5 text-sm text-[var(--muted)] transition-colors hover:text-[var(--text)]"
+          >
+            <span class="hidden font-mono text-xs text-[var(--faint)] lg:inline">{l.n}</span>
+            <span class="link-underline nav-label">{l.label}</span>
+          </a>
+        ))
+      }
+    </nav>
+
+    <div class="flex shrink-0 items-center gap-1.5 sm:gap-2">
+      <!-- AI entry point: accent + spark icon. -->
+      <button
+        type="button"
+        data-ask-open
+        class="inline-flex h-11 min-w-11 items-center justify-center gap-2 rounded-full border border-[var(--accent)] bg-[color-mix(in_srgb,var(--accent)_12%,var(--surface))] px-3 font-mono text-xs font-medium text-[var(--accent-ink)] transition-colors duration-200 hover:bg-[var(--accent)] hover:text-[var(--accent-contrast)]"
+        aria-label={t('ask.open')}
+      >
+        <Icon name="spark" size={16} />
+        <span class="hidden lg:inline">{t('ask.open')}</span>
+      </button>
+      <LangSwitch />
+      <ThemeToggle />
+    </div>
+  </div>
+</header>
+
+<script is:inline>
+  (function () {
+    var nav = document.getElementById('site-nav');
+    if (!nav) return;
+    function onScroll() {
+      var scrolled = window.scrollY > 16;
+      nav.style.backgroundColor = scrolled ? 'color-mix(in srgb, var(--bg) 90%, transparent)' : 'transparent';
+      nav.style.backdropFilter = scrolled ? 'blur(10px)' : 'none';
+      nav.style.borderBottomColor = scrolled ? 'var(--border)' : 'transparent';
+    }
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+  })();
+</script>

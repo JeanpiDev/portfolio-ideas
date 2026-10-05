@@ -1,0 +1,518 @@
+---
+/**
+ * The AI assistant: a global modal opened by any `[data-ask-open]` button.
+ * Full screen on mobile, centered card on desktop. Closed = display:none.
+ *
+ * Client logic lives in the <ask-modal> custom element below:
+ * NDJSON streaming from /api/chat, typewriter reveal (skipped with reduced
+ * motion), conversational memory (last 6 entries, sent with each request),
+ * recruiter mode, project cards and cited sources, demo-mode note.
+ */
+import { getLangFromUrl, useTranslations } from '../i18n/utils';
+import { projects, sourceIndex } from '../data/profile';
+import Icon from './Icon.astro';
+
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
+
+const suggestions = [
+  { q: t('ask.q1'), icon: 'user' },
+  { q: t('ask.q2'), icon: 'folder' },
+  { q: t('ask.q3'), icon: 'layers' },
+  { q: t('ask.q4'), icon: 'spark' },
+  { q: t('ask.q5'), icon: 'mail' },
+];
+
+// Data the client needs to render project cards and link citations
+// (the model only ever sends ids; everything visible comes from profile.ts).
+const sources = sourceIndex(lang);
+const clientData = {
+  lang,
+  projects: Object.fromEntries(
+    projects.map((p) => [p.id, { name: p.name[lang], kind: p.kind[lang], description: p.description[lang], tags: p.tags }]),
+  ),
+  hrefs: Object.fromEntries(Object.entries(sources).map(([id, s]) => [id, s.href])),
+  i18n: {
+    thinking: t('ask.thinking'),
+    writing: t('ask.writing'),
+    you: t('ask.you'),
+    assistant: t('ask.assistant'),
+    sources: t('ask.sources'),
+    source: t('ask.source'),
+    viewProject: t('ask.viewProject'),
+    retry: t('ask.retry'),
+    send: t('ask.send'),
+    stop: t('ask.stop'),
+    stopped: t('ask.stopped'),
+    errNetwork: t('ask.err.network'),
+    errRate: t('ask.err.rate'),
+    errLong: t('ask.err.long'),
+    errCut: t('ask.err.cut'),
+    noSource: t('ask.err.nosource'),
+  },
+};
+---
+
+<ask-modal data-ask-modal class="ask-modal fixed inset-0 z-50 sm:items-center sm:justify-center sm:p-4">
+  <script type="application/json" data-ask-data set:html={JSON.stringify(clientData)} />
+  <div data-ask-backdrop class="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
+
+  <div
+    class="ask-dialog relative flex h-full w-full flex-col overflow-hidden border border-[var(--border)] sm:h-auto sm:max-h-[88dvh] sm:max-w-xl sm:rounded-[var(--radius-xl)]"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="ask-title"
+    aria-describedby="ask-disclaimer"
+  >
+    <!-- Header -->
+    <div class="flex items-center justify-between gap-3 border-b border-[var(--border)] p-3 sm:p-4">
+      <div class="flex min-w-0 items-center gap-3">
+        <span class="ai-mark h-10 w-10 shrink-0"><Icon name="spark" size={18} /></span>
+        <div class="min-w-0">
+          <h2 id="ask-title" class="truncate font-mono text-sm font-medium text-[var(--text)]">{t('ask.title')}</h2>
+          <p class="mt-0.5 flex items-center gap-1.5 font-mono text-xs text-[var(--muted)]">
+            <span class="status-dot" aria-hidden="true"></span>
+            {t('ask.online')}
+          </p>
+        </div>
+      </div>
+      <div class="flex shrink-0 items-center gap-1">
+        <button type="button" data-ask-clear class="icon-btn" aria-label={t('ask.clear')} title={t('ask.clear')}>
+          <Icon name="refresh" size={17} />
+        </button>
+        <button type="button" data-ask-close class="icon-btn" aria-label={t('ask.close')} title={t('ask.close')}>
+          <Icon name="close" size={19} />
+        </button>
+      </div>
+    </div>
+
+    <!-- Scrollable body: welcome screen or conversation -->
+    <div data-ask-body class="flex-1 overflow-y-auto">
+      <div data-ask-hero class="flex min-h-full flex-col items-center justify-center px-5 py-10 text-center">
+        <span class="ai-mark h-16 w-16 rounded-[var(--radius-lg)]"><Icon name="spark" size={30} /></span>
+        <h3 class="mt-5 text-3xl text-[var(--text)]">{t('ask.greeting')}</h3>
+        <p class="mt-2 max-w-xs text-[var(--muted)]">{t('ask.subtitle')}</p>
+
+        <!-- Recruiter mode: sends a predefined pitch prompt, shows a short label. -->
+        <button
+          type="button"
+          data-ask-recruiter
+          data-recruiter-prompt={t('ask.recruiterPrompt')}
+          data-recruiter-label={t('ask.recruiter')}
+          class="chip-ai mt-6"
+        >
+          <Icon name="briefcase" size={15} />
+          {t('ask.recruiter')}
+        </button>
+
+        <p class="label-mono mt-6">{t('ask.suggested')}</p>
+        <div class="mt-3 flex max-w-md flex-wrap justify-center gap-2">
+          {
+            suggestions.map((s) => (
+              <button type="button" data-ask-suggest={s.q} class="chip">
+                <Icon name={s.icon} size={14} />
+                {s.q}
+              </button>
+            ))
+          }
+        </div>
+      </div>
+
+      <div data-ask-log class="hidden flex-col gap-5 p-4 font-mono text-sm"></div>
+    </div>
+
+    <!-- Screen readers: "Writing…" once, then the full answer once (never token by token). -->
+    <div class="sr-only" aria-live="polite" data-ask-live></div>
+
+    <!-- Input -->
+    <form data-ask-form class="border-t border-[var(--border)] p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:pb-3">
+      <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
+        <label for="ask-input" class="label-mono">{t('ask.label')}</label>
+        <p data-ask-demo hidden class="flex items-center gap-1.5 font-mono text-xs text-[var(--muted)]">
+          <Icon name="spark" size={11} class="text-[var(--accent-ink)]" />
+          {t('ask.demo')}
+        </p>
+      </div>
+      <div class="flex items-center gap-2 rounded-full border border-[var(--border-strong)] bg-[var(--bg-soft)] py-1 pr-1 pl-4 focus-within:border-[var(--text)]">
+        <input
+          id="ask-input"
+          type="text"
+          name="q"
+          data-ask-input
+          autocomplete="off"
+          maxlength="500"
+          placeholder={t('ask.placeholder')}
+          aria-describedby="ask-disclaimer"
+          class="min-h-11 min-w-0 flex-1 bg-transparent text-base text-[var(--text)] outline-none placeholder:text-[var(--faint)] sm:text-sm"
+        />
+        <button
+          type="submit"
+          data-ask-send
+          class="inline-flex h-11 shrink-0 items-center gap-1.5 rounded-full bg-[var(--accent)] px-4 font-mono text-xs font-medium text-[var(--accent-contrast)] transition-colors hover:bg-[color-mix(in_srgb,var(--accent)_85%,var(--text))]"
+        >
+          <span data-ask-send-icon><Icon name="arrowUp" size={16} /></span>
+          <span data-ask-stop-icon hidden><Icon name="square" size={14} /></span>
+          <span data-ask-send-label>{t('ask.send')}</span>
+        </button>
+      </div>
+      <p id="ask-disclaimer" class="mt-2 text-center font-mono text-xs text-[var(--faint)]">{t('ask.disclaimer')}</p>
+    </form>
+  </div>
+</ask-modal>
+
+<script>
+  type Data = {
+    lang: 'en' | 'es';
+    projects: Record<string, { name: string; kind: string; description: string; tags: string[] }>;
+    hrefs: Record<string, string>;
+    i18n: Record<string, string>;
+  };
+  type Turn = { role: 'user' | 'assistant'; content: string };
+  type Ev =
+    | { type: 'text'; delta: string }
+    | { type: 'component'; name: 'project'; id: string }
+    | { type: 'source'; n: number; id: string; label: string }
+    | { type: 'done' }
+    | { type: 'error'; code: string };
+  type AskOpts = { display?: string; mode?: 'chat' | 'recruiter'; context?: string };
+
+  const SPARK = '<path d="M12 2l2.2 6.6L21 11l-6.8 2.3L12 20l-2.2-6.7L3 11l6.8-2.4z"/>';
+  const reduceMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function esc(s: string) {
+    const d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+  }
+  /** Minimal, safe markdown: HTML is escaped BEFORE formatting. */
+  function md(s: string) {
+    let e = esc(s);
+    e = e.replace(/`([^`]+)`/g, '<code>$1</code>');
+    e = e.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+    e = e.replace(/(^|[^*])\*([^*\n]+)\*(?!\*)/g, '$1<em>$2</em>');
+    e = e.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+    return e.replace(/\n/g, '<br>');
+  }
+  const plain = (s: string) => s.replace(/\*\*|`/g, '');
+
+  class AskModal extends HTMLElement {
+    data!: Data;
+    body!: HTMLElement;
+    hero!: HTMLElement;
+    log!: HTMLElement;
+    dialog!: HTMLElement;
+    input!: HTMLInputElement;
+    send!: HTMLButtonElement;
+    live!: HTMLElement;
+    history: Turn[] = [];
+    busy = false;
+    controller: AbortController | null = null;
+    lastFocus: HTMLElement | null = null;
+
+    connectedCallback() {
+      this.data = JSON.parse(this.querySelector('[data-ask-data]')!.textContent || '{}');
+      this.body = this.querySelector('[data-ask-body]')!;
+      this.hero = this.querySelector('[data-ask-hero]')!;
+      this.log = this.querySelector('[data-ask-log]')!;
+      this.dialog = this.querySelector('[role="dialog"]')!;
+      this.input = this.querySelector('[data-ask-input]')!;
+      this.send = this.querySelector('[data-ask-send]')!;
+      this.live = this.querySelector('[data-ask-live]')!;
+
+      document.querySelectorAll<HTMLElement>('[data-ask-open]').forEach((b) =>
+        b.addEventListener('click', (e) => {
+          e.preventDefault();
+          this.open();
+          const q = b.dataset.askQuestion;
+          if (q) this.ask(q, { context: b.dataset.askProject });
+        }),
+      );
+      this.querySelector('[data-ask-close]')!.addEventListener('click', () => this.close());
+      this.querySelector('[data-ask-backdrop]')!.addEventListener('click', () => this.close());
+      this.querySelector('[data-ask-clear]')!.addEventListener('click', () => this.clear());
+      this.querySelector('[data-ask-form]')!.addEventListener('submit', (e) => {
+        e.preventDefault();
+        if (this.busy) this.controller?.abort();
+        else this.ask(this.input.value);
+      });
+      this.querySelectorAll<HTMLElement>('[data-ask-suggest]').forEach((b) =>
+        b.addEventListener('click', () => this.ask(b.dataset.askSuggest || '')),
+      );
+      const rec = this.querySelector<HTMLElement>('[data-ask-recruiter]')!;
+      rec.addEventListener('click', () =>
+        this.ask(rec.dataset.recruiterPrompt || '', { display: rec.dataset.recruiterLabel, mode: 'recruiter' }),
+      );
+      this.addEventListener('keydown', (e) => this.onKey(e));
+      // Citation and card links point to page sections: close the modal first.
+      this.log.addEventListener('click', (e) => {
+        const a = (e.target as HTMLElement).closest('a[href^="#"]');
+        if (a) this.close(false);
+      });
+    }
+
+    isOpen() {
+      return this.classList.contains('is-open');
+    }
+    open() {
+      if (this.isOpen()) return;
+      this.lastFocus = document.activeElement as HTMLElement;
+      this.classList.add('is-mounted');
+      document.body.classList.add('ask-lock');
+      void this.offsetWidth; // reflow so the fade runs (rAF pauses in background tabs)
+      this.classList.add('is-open');
+      setTimeout(() => this.input.focus(), 60);
+    }
+    close(restoreFocus = true) {
+      this.classList.remove('is-open');
+      document.body.classList.remove('ask-lock');
+      const unmount = () => this.classList.remove('is-mounted');
+      if (reduceMotion()) unmount();
+      else setTimeout(unmount, 220);
+      if (restoreFocus) this.lastFocus?.focus?.();
+    }
+    clear() {
+      this.controller?.abort();
+      this.log.innerHTML = '';
+      this.log.classList.add('hidden');
+      this.log.classList.remove('flex');
+      this.hero.classList.remove('hidden');
+      this.history = [];
+      this.input.value = '';
+      this.input.focus();
+    }
+    onKey(e: KeyboardEvent) {
+      if (!this.isOpen()) return;
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        this.close();
+        return;
+      }
+      if (e.key !== 'Tab') return;
+      // Focus trap inside the dialog.
+      const f = Array.from(
+        this.dialog.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])'),
+      ).filter((el) => el.offsetParent !== null);
+      if (!f.length) return;
+      const first = f[0];
+      const last = f[f.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
+
+    setBusy(on: boolean) {
+      this.busy = on;
+      this.querySelector<HTMLElement>('[data-ask-send-icon]')!.hidden = on;
+      this.querySelector<HTMLElement>('[data-ask-stop-icon]')!.hidden = !on;
+      this.querySelector('[data-ask-send-label]')!.textContent = on ? this.data.i18n.stop : this.data.i18n.send;
+    }
+    scroll() {
+      this.body.scrollTop = this.body.scrollHeight;
+    }
+    showLog() {
+      this.hero.classList.add('hidden');
+      this.log.classList.remove('hidden');
+      this.log.classList.add('flex');
+    }
+
+    addUser(text: string) {
+      const p = document.createElement('p');
+      p.className = 'text-[var(--text)]';
+      p.innerHTML = `<span class="sr-only">${esc(this.data.i18n.you)}: </span><span aria-hidden="true" class="text-[var(--faint)]">&gt; </span>${esc(text)}`;
+      this.log.appendChild(p);
+    }
+
+    addError(message: string, retry?: () => void) {
+      const box = document.createElement('div');
+      box.setAttribute('role', 'alert');
+      box.className = 'flex flex-wrap items-center gap-3 rounded-lg border border-[var(--danger)] px-3 py-2 text-[var(--danger)]';
+      box.innerHTML = `<span>${esc(message)}</span>`;
+      if (retry) {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'btn btn-ghost !min-h-11 !px-3 !py-1 text-xs';
+        b.textContent = this.data.i18n.retry;
+        b.addEventListener('click', () => {
+          box.remove();
+          retry();
+        });
+        box.appendChild(b);
+      }
+      this.log.appendChild(box);
+      this.scroll();
+    }
+
+    projectCard(id: string) {
+      const p = this.data.projects[id];
+      if (!p) return null;
+      const el = document.createElement('div');
+      el.className = 'card p-4 font-sans';
+      el.innerHTML =
+        `<p class="label-mono">${esc(p.kind)}</p>` +
+        `<p class="mt-1 font-display text-xl text-[var(--text)]">${esc(p.name)}</p>` +
+        `<p class="mt-2 text-sm leading-relaxed text-[var(--muted)]">${esc(p.description)}</p>` +
+        `<p class="mt-3 flex flex-wrap gap-1.5">${p.tags.map((t) => `<span class="badge">${esc(t)}</span>`).join('')}</p>` +
+        `<a href="#project-${encodeURIComponent(id)}" class="mt-3 inline-flex min-h-11 items-center gap-2 font-mono text-xs text-[var(--text)] underline decoration-[var(--border-strong)] underline-offset-4">${esc(this.data.i18n.viewProject)} →</a>`;
+      return el;
+    }
+
+    async ask(question: string, opts: AskOpts = {}) {
+      question = question.trim();
+      if (this.busy || !question) return;
+      const { i18n } = this.data;
+      this.showLog();
+      this.input.value = '';
+      this.addUser(opts.display || question);
+      if (question.length > 500) {
+        this.addError(i18n.errLong);
+        return;
+      }
+
+      // Assistant message shell.
+      const msg = document.createElement('article');
+      msg.className = 'flex gap-3';
+      msg.setAttribute('aria-busy', 'true');
+      msg.innerHTML =
+        `<span class="mt-0.5 shrink-0 text-[var(--accent-ink)]" aria-hidden="true"><svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">${SPARK}</svg></span>` +
+        `<div class="min-w-0 flex-1 space-y-3"><h3 class="sr-only">${esc(i18n.assistant)}</h3>` +
+        `<p data-text class="chat-md chat-caret leading-relaxed text-[var(--muted)]"><span class="italic text-[var(--faint)]">${esc(i18n.thinking)}</span></p>` +
+        `<div data-card></div><div data-sources></div></div>`;
+      this.log.appendChild(msg);
+      this.scroll();
+      const textEl = msg.querySelector<HTMLElement>('[data-text]')!;
+      const cardEl = msg.querySelector<HTMLElement>('[data-card]')!;
+      const srcEl = msg.querySelector<HTMLElement>('[data-sources]')!;
+      const sources: { n: number; id: string; label: string }[] = [];
+      let acc = '';
+      let shown = 0;
+      let streamDone = false;
+      let errorCode: string | null = null;
+
+      this.live.textContent = i18n.writing;
+      this.setBusy(true);
+      this.controller = new AbortController();
+      const retry = () => this.ask(question, opts);
+
+      // Typewriter: reveal what has arrived at a steady pace (instant with reduced motion).
+      const reveal = new Promise<void>((resolve) => {
+        const tick = () => {
+          if (reduceMotion() || shown >= acc.length) shown = acc.length;
+          else shown = Math.min(acc.length, shown + 3);
+          if (shown > 0) textEl.innerHTML = md(acc.slice(0, shown));
+          this.scroll();
+          if (streamDone && shown >= acc.length) return resolve();
+          setTimeout(tick, shown < acc.length ? 14 : 40);
+        };
+        tick();
+      });
+
+      try {
+        const res = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message: question,
+            lang: this.data.lang,
+            history: this.history,
+            mode: opts.mode ?? 'chat',
+            ...(opts.context ? { context: opts.context } : {}),
+          }),
+          signal: this.controller.signal,
+        });
+        if (res.headers.get('X-Assistant-Mode') === 'demo') {
+          this.querySelector<HTMLElement>('[data-ask-demo]')!.hidden = false;
+        }
+        if (!res.body) throw new Error('no body');
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buf = '';
+        const handle = (ev: Ev) => {
+          if (ev.type === 'text') acc += ev.delta;
+          else if (ev.type === 'source') sources.push(ev);
+          else if (ev.type === 'component' && ev.name === 'project' && !cardEl.firstChild) {
+            const card = this.projectCard(ev.id);
+            if (card) cardEl.appendChild(card);
+          } else if (ev.type === 'error') errorCode = ev.code;
+        };
+        for (;;) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buf += decoder.decode(value, { stream: true });
+          let i: number;
+          while ((i = buf.indexOf('\n')) >= 0) {
+            const lineStr = buf.slice(0, i).trim();
+            buf = buf.slice(i + 1);
+            if (lineStr) {
+              try {
+                handle(JSON.parse(lineStr));
+              } catch {
+                /* ignore malformed line */
+              }
+            }
+          }
+        }
+        if (buf.trim()) {
+          try {
+            handle(JSON.parse(buf));
+          } catch {
+            /* ignore */
+          }
+        }
+      } catch (err) {
+        if ((err as Error).name === 'AbortError') errorCode = 'aborted';
+        else errorCode = errorCode ?? 'network';
+      } finally {
+        streamDone = true;
+      }
+
+      await reveal;
+      textEl.classList.remove('chat-caret');
+      msg.removeAttribute('aria-busy');
+      this.setBusy(false);
+      this.controller = null;
+
+      if (!acc.trim()) textEl.remove();
+
+      if (sources.length) {
+        srcEl.innerHTML =
+          `<p class="label-mono">${esc(i18n.sources)}</p>` +
+          `<ol class="mt-1 flex flex-wrap gap-x-4 gap-y-1">` +
+          sources
+            .map(
+              (s) =>
+                `<li><a class="chat-source inline-flex min-h-11 items-center text-xs" href="${esc(this.data.hrefs[s.id] || '#main')}" aria-label="${esc(`${i18n.source} ${s.n}: ${s.label}`)}">[${s.n}] ${esc(s.label)}</a></li>`,
+            )
+            .join('') +
+          `</ol>`;
+      } else if (acc.trim() && !errorCode && !plain(acc).includes(i18n.noSource.slice(0, 24))) {
+        srcEl.innerHTML = `<p class="text-xs text-[var(--faint)]">${esc(i18n.noSource)}</p>`;
+      }
+
+      if (errorCode === 'aborted') {
+        srcEl.insertAdjacentHTML('beforeend', `<p class="text-xs text-[var(--faint)]">${esc(i18n.stopped)}</p>`);
+      } else if (errorCode === 'rate_limited') this.addError(i18n.errRate);
+      else if (errorCode === 'too_long') this.addError(i18n.errLong);
+      else if (errorCode === 'stream_cut' || (errorCode && acc.trim())) this.addError(i18n.errCut, retry);
+      else if (errorCode) this.addError(i18n.errNetwork, retry);
+
+      // Announce the finished answer once.
+      this.live.textContent = acc.trim()
+        ? plain(acc) + (sources.length ? ` ${i18n.sources}: ${sources.map((s) => s.label).join('; ')}.` : '')
+        : '';
+
+      if (acc.trim() && !errorCode) {
+        // Conversational memory: the last 6 entries go with the next request.
+        this.history.push({ role: 'user', content: question }, { role: 'assistant', content: acc });
+        this.history = this.history.slice(-6);
+      }
+      this.scroll();
+      if (this.isOpen()) this.input.focus();
+    }
+  }
+
+  customElements.define('ask-modal', AskModal);
+</script>

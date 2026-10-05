@@ -1,0 +1,144 @@
+---
+/**
+ * Drawn placeholder for a project preview (HTML/CSS only, no images).
+ *
+ * WANT REAL SCREENSHOTS? Put the files in `src/assets/projects/` and list
+ * their file names in the project's `images` field in src/data/profile.ts.
+ * Carousel.astro then renders them with `<Image>` from astro:assets and this
+ * component is no longer used for that project.
+ *
+ * `variant` draws the same UI in a different state, one per carousel slide.
+ */
+import type { ProjectVisualKind } from '../data/profile';
+import Icon from './Icon.astro';
+
+interface Props {
+  kind: ProjectVisualKind;
+  variant?: number;
+}
+const { kind, variant = 0 } = Astro.props;
+
+const queueStates = [
+  [
+    ['build:assets', 'done'],
+    ['sync:catalog', 'running'],
+    ['email:digest', 'queued'],
+    ['report:weekly', 'queued'],
+  ],
+  [
+    ['build:assets', 'done'],
+    ['sync:catalog', 'failed'],
+    ['email:digest', 'running'],
+    ['report:weekly', 'queued'],
+  ],
+  [
+    ['build:assets', 'done'],
+    ['sync:catalog', 'done'],
+    ['email:digest', 'done'],
+    ['report:weekly', 'running'],
+  ],
+];
+const rows = queueStates[variant % queueStates.length];
+const sliderPos = [38, 72][variant % 2];
+---
+
+<div class="pv absolute inset-0 overflow-hidden bg-[var(--bg-soft)] p-[5%] font-mono text-[var(--muted)]">
+  <!-- window chrome -->
+  <div class="flex h-full flex-col overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface)]">
+    <div class="flex items-center gap-1.5 border-b border-[var(--border)] px-3 py-2">
+      <span class="h-2 w-2 rounded-full bg-[var(--border-strong)]"></span>
+      <span class="h-2 w-2 rounded-full bg-[var(--border)]"></span>
+      <span class="h-2 w-2 rounded-full bg-[var(--border)]"></span>
+      <span class="ml-2 h-1.5 w-1/3 rounded bg-[var(--border)]"></span>
+    </div>
+
+    {
+      kind === 'queue' && (
+        <div class="flex flex-1 flex-col gap-[6%] p-[4%]">
+          {variant === 2 ? (
+            <div class="rounded border border-dashed border-[var(--border-strong)] px-2 py-1 text-[0.6rem]">ws · reconnected</div>
+          ) : null}
+          {rows.map(([name, st]) => (
+            <div class="flex items-center justify-between gap-2 border-b border-[var(--border)] pb-[3%] text-[clamp(0.5rem,1.4vw,0.75rem)]">
+              <span class="truncate text-[var(--text)]">{name}</span>
+              <span
+                class:list={[
+                  'rounded-full border px-2 py-0.5',
+                  st === 'running' && 'border-[var(--text)] text-[var(--text)]',
+                  st === 'done' && 'border-[var(--border)]',
+                  st === 'queued' && 'border-dashed border-[var(--border-strong)]',
+                  st === 'failed' && 'border-[var(--danger)] text-[var(--danger)]',
+                ]}
+              >
+                {st}
+              </span>
+            </div>
+          ))}
+        </div>
+      )
+    }
+
+    {
+      kind === 'slider' && (
+        <div class="flex flex-1 flex-col justify-center gap-[8%] p-[6%]">
+          <div class="flex items-end justify-between">
+            <span class="h-1.5 w-1/4 rounded bg-[var(--border-strong)]" />
+            <span class="font-display text-[clamp(1rem,4vw,2rem)] text-[var(--text)]">{variant % 2 ? '$24,000' : '$12,500'}</span>
+          </div>
+          <div class="relative h-1.5 rounded-full bg-[var(--border)]">
+            <div class="absolute inset-y-0 left-0 rounded-full bg-[var(--text)]" style={`width:${sliderPos}%`} />
+            <div class="absolute top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-[var(--text)] bg-[var(--surface)]" style={`left:${sliderPos}%`} />
+          </div>
+          <div class="flex gap-2">
+            {['12', '24', '36', '48'].map((m, i) => (
+              <span class:list={['flex-1 rounded border py-1 text-center text-[0.6rem]', i === (variant % 2 ? 2 : 1) ? 'border-[var(--text)] text-[var(--text)]' : 'border-[var(--border)]']}>{m}m</span>
+            ))}
+          </div>
+          <div class="flex h-[18%] items-end gap-1">
+            {[40, 55, 70, 62, 80, 90].map((h) => (
+              <span class="flex-1 rounded-sm bg-[var(--border-strong)]" style={`height:${h}%`} />
+            ))}
+          </div>
+        </div>
+      )
+    }
+
+    {
+      kind === 'map' && (
+        <div class="relative flex-1">
+          <div class="absolute inset-0 opacity-70 [background-image:linear-gradient(var(--border)_1px,transparent_1px),linear-gradient(90deg,var(--border)_1px,transparent_1px)] [background-size:22px_22px]" />
+          <svg class="absolute inset-0 h-full w-full" viewBox="0 0 100 56" preserveAspectRatio="none" aria-hidden="true">
+            <path d="M0 40 C 20 30, 35 48, 55 34 S 85 20, 100 28" fill="none" stroke="var(--border-strong)" stroke-width="0.8" />
+          </svg>
+          {[[22, 38], [48, 30], [70, 52], [83, 34]].map(([x, y]) => (
+            <span class="absolute h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-[var(--surface)] bg-[var(--text)]" style={`left:${x}%;top:${y}%`} />
+          ))}
+          <div class="absolute left-[4%] top-[8%] flex flex-wrap gap-1">
+            {['Open now', '2 km', 'Price ≤ $$'].map((c, i) => (
+              <span class:list={['rounded-full border bg-[var(--surface)] px-2 py-0.5 text-[0.6rem]', i === 0 ? 'border-[var(--text)] text-[var(--text)]' : 'border-[var(--border-strong)]']}>{c}</span>
+            ))}
+          </div>
+          <span class="absolute bottom-[8%] right-[4%] rounded bg-[var(--surface)] px-2 py-0.5 text-[0.6rem] text-[var(--text)]">4 results</span>
+        </div>
+      )
+    }
+
+    {
+      kind === 'chat' && (
+        <div class="flex flex-1 flex-col justify-end gap-[5%] p-[5%] text-[clamp(0.5rem,1.4vw,0.75rem)]">
+          <p class="self-end rounded-lg border border-[var(--border)] px-2 py-1 text-[var(--text)]">&gt; who built this?</p>
+          <div class="flex gap-2">
+            <span class="mt-0.5 text-[var(--accent-ink)]"><Icon name="spark" size={12} /></span>
+            <div class="flex-1 space-y-1.5">
+              <span class="block h-1.5 w-11/12 rounded bg-[var(--border-strong)]" />
+              <span class="block h-1.5 w-4/5 rounded bg-[var(--border-strong)]" />
+              <span class="block h-1.5 w-2/5 rounded bg-[var(--border-strong)]" />
+              <span class="inline-block rounded border border-[var(--border)] px-1.5 text-[0.55rem]">[1] Projects</span>
+            </div>
+          </div>
+          <div class="h-[16%] rounded-full border border-[var(--border-strong)]" />
+        </div>
+      )
+    }
+  </div>
+</div>

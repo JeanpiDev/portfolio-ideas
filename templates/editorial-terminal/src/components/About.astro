@@ -1,0 +1,53 @@
+---
+import { getLangFromUrl, useTranslations } from '../i18n/utils';
+import { profile } from '../data/profile';
+
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
+---
+
+<section id="about" class="scroll-mt-24 py-24">
+  <div class="container-page">
+    <p class="eyebrow reveal">01 — {t('nav.about')}</p>
+    <h2 class="section-title reveal">{t('about.title')}</h2>
+
+    <div class="mt-10 grid gap-12 md:grid-cols-[1.6fr_1fr]">
+      <div class="reveal space-y-5 text-lg leading-relaxed text-[var(--muted)]">
+        {profile.about.map((p) => <p>{p[lang]}</p>)}
+      </div>
+
+      <dl class="reveal card space-y-4 self-start p-6" style="transition-delay: 0.1s">
+        {
+          profile.facts.map((f) => (
+            <div class="flex items-center justify-between gap-4 border-b border-[var(--border)] pb-3 last:border-0 last:pb-0">
+              <dt class="label-mono">{f.k[lang]}</dt>
+              <dd class="text-right text-sm text-[var(--text)]">{f.v[lang]}</dd>
+            </div>
+          ))
+        }
+      </dl>
+    </div>
+
+    <div class="mt-8 grid gap-6 sm:grid-cols-2">
+      <div class="reveal card p-6">
+        <h3 class="label-mono">{t('about.education')}</h3>
+        <p class="mt-3 text-[var(--text)]">{profile.education.degree[lang]}</p>
+        <p class="mt-1 font-mono text-sm text-[var(--muted)]">{profile.education.school[lang]}</p>
+      </div>
+
+      <div class="reveal card p-6" style="transition-delay: 0.08s">
+        <h3 class="label-mono">{t('about.awards')}</h3>
+        <ul class="mt-3 space-y-2 text-[var(--muted)]">
+          {
+            profile.recognitions.map((r) => (
+              <li class="flex gap-3">
+                <span class="mt-2.5 h-1 w-1 shrink-0 rounded-full bg-[var(--faint)]" aria-hidden="true" />
+                <span>{r[lang]}</span>
+              </li>
+            ))
+          }
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>

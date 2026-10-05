@@ -1,0 +1,25 @@
+---
+// Root: redirects to the default locale (/en/). Spanish browsers go to /es/.
+// The meta refresh is the no-JS fallback.
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta http-equiv="refresh" content="0; url=/en/" />
+    <meta name="robots" content="noindex" />
+    <link rel="canonical" href="/en/" />
+    <title>Redirecting…</title>
+    <script is:inline>
+      (function () {
+        var lang = (navigator.language || 'en').toLowerCase();
+        location.replace(lang.indexOf('es') === 0 ? '/es/' : '/en/');
+      })();
+    </script>
+  </head>
+  <body>
+    <p>Redirecting to <a href="/en/">/en/</a>…</p>
+  </body>
+</html>

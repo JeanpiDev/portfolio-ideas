@@ -1,0 +1,141 @@
+---
+/**
+ * Project carousel. Manual only (buttons, dots, arrow keys, swipe) — no
+ * autoplay, so nothing moves on its own (WCAG 2.2.2, reduced motion).
+ *
+ * Slides are either real screenshots (project.images → `<Image>` from
+ * astro:assets, files in src/assets/projects/) or drawn placeholders
+ * (ProjectVisual) while you have no screenshots yet.
+ */
+import { Image } from 'astro:assets';
+import type { ImageMetadata } from 'astro';
+import type { Project, Lang } from '../data/profile';
+import { useTranslations } from '../i18n/utils';
+import ProjectVisual from './ProjectVisual.astro';
+import Icon from './Icon.astro';
+
+interface Props {
+  project: Project;
+  lang: Lang;
+}
+const { project, lang } = Astro.props;
+const t = useTranslations(lang);
+
+// Import project assets so Astro optimizes them (webp, sizes, lazy).
+const assetMap = import.meta.glob<{ default: ImageMetadata }>('../assets/projects/*.{png,jpg,jpeg,webp,avif}', {
+  eager: true,
+});
+const byName: Record<string, ImageMetadata> = {};
+for (const p in assetMap) byName[p.split('/').pop() as string] = assetMap[p].default;
+
+const images = (project.images ?? []).map((f) => byName[f.split('/').pop() as string]).filter(Boolean);
+const count = images.length || Math.max(1, project.slides ?? 1);
+const multi = count > 1;
+const alt = `${project.name[lang]} — ${project.description[lang]}`;
+---
+
+<div
+  class="carousel relative"
+  data-carousel
+  role={multi ? 'group' : undefined}
+  aria-roledescription={multi ? 'carousel' : undefined}
+  aria-label={multi ? project.name[lang] : undefined}
+>
+  <div class="relative aspect-video w-full overflow-hidden" data-carousel-viewport tabindex={multi ? 0 : undefined}>
+    {
+      images.length > 0
+        ? images.map((src, idx) => (
+            <Image
+              src={src}
+              alt={idx === 0 ? alt : `${project.name[lang]} (${idx + 1}/${count})`}
+              loading="lazy"
+              widths={[640, 960, 1280]}
+              sizes="(min-width: 864px) 816px, 100vw"
+              class:list={['carousel-slide absolute inset-0 h-full w-full object-cover', idx === 0 && 'is-active']}
+              aria-hidden={idx === 0 ? undefined : 'true'}
+            />
+          ))
+        : Array.from({ length: count }, (_, idx) => (
+            <div
+              class:list={['carousel-slide absolute inset-0', idx === 0 && 'is-active']}
+              role="img"
+              aria-label={`${t('projects.placeholder')}: ${project.name[lang]}${multi ? ` (${idx + 1}/${count})` : ''}`}
+              aria-hidden={idx === 0 ? undefined : 'true'}
+            >
+              <ProjectVisual kind={project.visual} variant={idx} />
+            </div>
+          ))
+    }
+
+    {
+      multi && (
+        <>
+          <button type="button" data-carousel-prev class="carousel-btn left-2" aria-label={t('carousel.prev')} hidden>
+            <Icon name="chevronLeft" size={20} />
+          </button>
+          <button type="button" data-carousel-next class="carousel-btn right-2" aria-label={t('carousel.next')} hidden>
+            <Icon name="chevronRight" size={20} />
+          </button>
+        </>
+      )
+    }
+  </div>
+
+  {
+    multi && (
+      <div class="flex justify-center border-t border-[var(--border)]" data-carousel-dots hidden>
+        {Array.from({ length: count }, (_, idx) => (
+          <button
+            type="button"
+            data-carousel-dot
+            class:list={['carousel-dot', idx === 0 && 'is-active']}
+            aria-label={`${t('carousel.goto')} ${idx + 1}`}
+            aria-current={idx === 0 ? 'true' : undefined}
+          />
+        ))}
+      </div>
+    )
+  }
+</div>
+
+<script is:inline>
+  (function () {
+    document.querySelectorAll('[data-carousel]').forEach(function (root) {
+      var slides = Array.from(root.querySelectorAll('.carousel-slide'));
+      if (slides.length < 2) return;
+      var dots = Array.from(root.querySelectorAll('[data-carousel-dot]'));
+      // Controls are hidden without JS (only the first slide shows then).
+      root.querySelectorAll('[hidden]').forEach(function (el) { el.hidden = false; });
+      var cur = 0;
+      function go(n) {
+        cur = (n + slides.length) % slides.length;
+        slides.forEach(function (s, i) {
+          s.classList.toggle('is-active', i === cur);
+          if (i === cur) s.removeAttribute('aria-hidden');
+          else s.setAttribute('aria-hidden', 'true');
+        });
+        dots.forEach(function (d, i) {
+          d.classList.toggle('is-active', i === cur);
+          if (i === cur) d.setAttribute('aria-current', 'true');
+          else d.removeAttribute('aria-current');
+        });
+      }
+      root.querySelector('[data-carousel-next]').addEventListener('click', function () { go(cur + 1); });
+      root.querySelector('[data-carousel-prev]').addEventListener('click', function () { go(cur - 1); });
+      dots.forEach(function (d, i) { d.addEventListener('click', function () { go(i); }); });
+      root.querySelector('[data-carousel-viewport]').addEventListener('keydown', function (e) {
+        if (e.key === 'ArrowRight') { e.preventDefault(); go(cur + 1); }
+        if (e.key === 'ArrowLeft') { e.preventDefault(); go(cur - 1); }
+      });
+      // Swipe is a shortcut only; buttons and dots do the same with a single tap.
+      var x0 = null;
+      root.addEventListener('touchstart', function (e) { x0 = e.touches[0].clientX; }, { passive: true });
+      root.addEventListener('touchend', function (e) {
+        if (x0 === null) return;
+        var dx = e.changedTouches[0].clientX - x0;
+        if (Math.abs(dx) > 40) go(cur + (dx < 0 ? 1 : -1));
+        x0 = null;
+      });
+    });
+  })();
+</script>

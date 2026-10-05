@@ -1,0 +1,20 @@
+---
+import { getIconPath } from '../lib/techIcons';
+
+interface Props {
+  name: string;
+}
+const { name } = Astro.props;
+const iconPath = getIconPath(name);
+---
+
+<span class="badge">
+  {
+    iconPath && (
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="14" height="14" fill="currentColor" aria-hidden="true" class="shrink-0 opacity-80">
+        <path d={iconPath} />
+      </svg>
+    )
+  }
+  {name}
+</span>

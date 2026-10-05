@@ -1,0 +1,96 @@
+---
+import { getLangFromUrl, useTranslations } from '../i18n/utils';
+import { SITE } from '../config';
+import { profile } from '../data/profile';
+
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
+const hasForm = SITE.web3formsKey.length > 0;
+---
+
+<section id="contact" class="scroll-mt-24 py-24">
+  <div class="container-page">
+    <p class="eyebrow reveal">05 — {t('nav.contact')}</p>
+    <h2 class="section-title reveal">{t('contact.title')}</h2>
+    <p class="reveal mt-4 max-w-lg text-lg text-[var(--muted)]">{t('contact.intro')}</p>
+
+    {
+      /* Web3Forms (no backend). Rendered only when PUBLIC_WEB3FORMS_KEY is set;
+         without JS it still posts to Web3Forms and shows their result page. */
+      hasForm && (
+        <form id="contact-form" class="reveal mt-10 space-y-5" action="https://api.web3forms.com/submit" method="POST">
+          <input type="hidden" name="access_key" value={SITE.web3formsKey} />
+          <input type="hidden" name="subject" value={`${t('contact.subject')} (${lang.toUpperCase()})`} />
+          <input type="hidden" name="from_name" value={profile.name} />
+          {/* Honeypot: must stay hidden and empty. */}
+          <input type="checkbox" name="botcheck" class="hidden" tabindex="-1" autocomplete="off" aria-hidden="true" />
+
+          <div class="grid gap-5 sm:grid-cols-2">
+            <label class="block">
+              <span class="label-mono mb-2 block">{t('contact.name')}</span>
+              <input type="text" name="name" autocomplete="name" required class="field" />
+            </label>
+            <label class="block">
+              <span class="label-mono mb-2 block">{t('contact.email')}</span>
+              <input type="email" name="email" autocomplete="email" required class="field" />
+            </label>
+          </div>
+
+          <label class="block">
+            <span class="label-mono mb-2 block">{t('contact.message')}</span>
+            <textarea name="message" rows="5" required class="field resize-y" />
+          </label>
+
+          <button type="submit" class="btn btn-primary" data-label={t('contact.send')} data-sending={t('contact.sending')}>
+            {t('contact.send')}
+          </button>
+
+          <p id="form-status" class="hidden font-mono text-sm" role="status" data-success={t('contact.success')} data-error={t('contact.error')} />
+        </form>
+      )
+    }
+
+    <p class="reveal mt-8 text-[var(--muted)]">
+      {t('contact.or')}{' '}
+      <a href={`mailto:${profile.email}`} class="link-underline underline decoration-[var(--border-strong)] underline-offset-4">{profile.email}</a>
+    </p>
+  </div>
+</section>
+
+{
+  hasForm && (
+    <script is:inline>
+      (function () {
+        var form = document.getElementById('contact-form');
+        if (!form) return;
+        var status = document.getElementById('form-status');
+        var btn = form.querySelector('button[type="submit"]');
+        function show(ok) {
+          status.textContent = status.getAttribute(ok ? 'data-success' : 'data-error');
+          status.style.color = ok ? 'var(--text)' : 'var(--danger)';
+          status.setAttribute('role', ok ? 'status' : 'alert');
+          status.classList.remove('hidden');
+        }
+        form.addEventListener('submit', async function (e) {
+          e.preventDefault();
+          btn.disabled = true;
+          btn.textContent = btn.getAttribute('data-sending');
+          try {
+            var res = await fetch('https://api.web3forms.com/submit', {
+              method: 'POST',
+              headers: { Accept: 'application/json' },
+              body: new FormData(form),
+            });
+            show(res.ok);
+            if (res.ok) form.reset();
+          } catch (err) {
+            show(false);
+          } finally {
+            btn.disabled = false;
+            btn.textContent = btn.getAttribute('data-label');
+          }
+        });
+      })();
+    </script>
+  )
+}

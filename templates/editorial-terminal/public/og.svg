@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <!-- Social preview source. After editing, regenerate og.png (see README). -->
+  <rect width="1200" height="630" fill="#0b0e14"/>
+  <g stroke="#232a38" stroke-opacity="0.6">
+    <line x1="0" y1="96" x2="1200" y2="96"/><line x1="0" y1="534" x2="1200" y2="534"/>
+  </g>
+  <text x="96" y="190" font-family="'Geist Mono', 'DejaVu Sans Mono', monospace" font-size="30" fill="#a1a9b8">visitor@alex:~$ <tspan fill="#e8ebf2">whoami</tspan></text>
+  <text x="90" y="340" font-family="'Newsreader', 'DejaVu Serif', Georgia, serif" font-size="140" fill="#e8ebf2">Alex Moreno</text>
+  <text x="96" y="420" font-family="'Geist Mono', 'DejaVu Sans Mono', monospace" font-size="34" fill="#e8ebf2"><tspan fill="#8c95a5">&lt;</tspan>Frontend Engineer<tspan fill="#8c95a5"> /&gt;</tspan></text>
+  <g transform="translate(96 470)">
+    <rect width="340" height="48" rx="24" fill="#2a1d1a" stroke="#ff8a5c"/>
+    <path transform="translate(18 12) scale(1)" d="M12 2l2.2 6.6L21 11l-6.8 2.3L12 20l-2.2-6.7L3 11l6.8-2.4z" fill="#ff8a5c"/>
+    <text x="52" y="32" font-family="'Geist Mono', 'DejaVu Sans Mono', monospace" font-size="22" fill="#ff8a5c">Ask my AI assistant</text>
+  </g>
+</svg>

@@ -1,0 +1,194 @@
+---
+import '../styles/global.css';
+import { getLangFromUrl, useTranslations, switchLangPath } from '../i18n/utils';
+import { SITE } from '../config';
+import { profile } from '../data/profile';
+import Nav from '../components/Nav.astro';
+import Footer from '../components/Footer.astro';
+import MobileDock from '../components/MobileDock.astro';
+import AskModal from '../components/AskModal.astro';
+import Analytics from '@vercel/analytics/astro';
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
+
+const title = Astro.props.title ?? `${profile.name} — ${profile.role[lang]}`;
+const description = Astro.props.description ?? profile.tagline[lang];
+
+const canonical = new URL(Astro.url.pathname, SITE.url).href;
+const esHref = new URL(switchLangPath(Astro.url, 'es'), SITE.url).href;
+const enHref = new URL(switchLangPath(Astro.url, 'en'), SITE.url).href;
+// Social preview image. Regenerate public/og.png from public/og.svg after
+// editing it (see README), or replace it with your own 1200x630 PNG.
+const ogImage = new URL('/og.png', SITE.url).href;
+---
+
+<!doctype html>
+<html lang={lang}>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="generator" content={Astro.generator} />
+    <meta name="theme-color" content="#0b0e14" />
+
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    <link rel="alternate" hreflang="en" href={enHref} />
+    <link rel="alternate" hreflang="es" href={esHref} />
+    <link rel="alternate" hreflang="x-default" href={enHref} />
+
+    <!-- Open Graph / Twitter -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:locale" content={lang === 'es' ? 'es_ES' : 'en_US'} />
+    <meta property="og:site_name" content={profile.name} />
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content={`${profile.name} — ${profile.role[lang]}`} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImage} />
+
+    <!-- Before first paint: mark JS as available and apply the saved theme (no flash). -->
+    <script is:inline>
+      (function () {
+        var root = document.documentElement;
+        root.classList.add('js');
+        try {
+          var stored = localStorage.getItem('theme');
+          var theme =
+            stored ||
+            (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+          root.classList.toggle('light', theme === 'light');
+        } catch (e) {}
+      })();
+    </script>
+
+    <!-- Vercel Web Analytics (active only when deployed on Vercel with Analytics enabled). -->
+    <Analytics />
+  </head>
+  <body>
+    <a
+      href="#main"
+      class="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[60] focus:rounded-md focus:bg-[var(--text)] focus:px-4 focus:py-3 focus:text-[var(--bg)]"
+    >
+      {t('meta.skip')}
+    </a>
+    <Nav />
+    <main id="main" tabindex="-1">
+      <slot />
+    </main>
+    <Footer />
+    <MobileDock />
+    <AskModal />
+
+    <!-- Reveal on scroll -->
+    <script is:inline>
+      (function () {
+        var els = document.querySelectorAll('.reveal');
+        if (!('IntersectionObserver' in window) || !els.length) {
+          els.forEach(function (el) { el.classList.add('is-visible'); });
+          return;
+        }
+        var io = new IntersectionObserver(
+          function (entries) {
+            entries.forEach(function (entry) {
+              if (entry.isIntersecting) {
+                entry.target.classList.add('is-visible');
+                io.unobserve(entry.target);
+              }
+            });
+          },
+          { threshold: 0.12, rootMargin: '0px 0px -8% 0px' }
+        );
+        els.forEach(function (el) { io.observe(el); });
+      })();
+    </script>
+
+    <!-- Scroll-spy: marks the active section in the nav and in the mobile dock. -->
+    <script is:inline>
+      (function () {
+        var ids = ['home', 'about', 'experience', 'projects', 'skills', 'contact'];
+        var sections = ids.map(function (id) { return document.getElementById(id); }).filter(Boolean);
+        if (!sections.length || !('IntersectionObserver' in window)) return;
+
+        function setActive(id) {
+          document.querySelectorAll('[data-nav-link]').forEach(function (el) {
+            var on = el.getAttribute('data-nav-link') === id;
+            el.classList.toggle('is-active', on);
+            if (on) el.setAttribute('aria-current', 'location');
+            else el.removeAttribute('aria-current');
+          });
+        }
+        var io = new IntersectionObserver(
+          function (entries) {
+            entries.forEach(function (entry) {
+              if (entry.isIntersecting) setActive(entry.target.id);
+            });
+          },
+          { rootMargin: '-45% 0px -45% 0px', threshold: 0 }
+        );
+        sections.forEach(function (el) { io.observe(el); });
+        window.addEventListener(
+          'scroll',
+          function () {
+            if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 4) setActive('contact');
+          },
+          { passive: true }
+        );
+      })();
+    </script>
+
+    <!-- Eased scrolling for in-page anchors. Skipped entirely under
+         prefers-reduced-motion (the browser then jumps instantly). -->
+    <script is:inline>
+      (function () {
+        var NAV_OFFSET = 72;
+        var reduce = window.matchMedia('(prefers-reduced-motion: reduce)');
+        function ease(t) { return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; }
+        function animateScroll(targetY, duration) {
+          var startY = window.scrollY;
+          var diff = targetY - startY;
+          if (Math.abs(diff) < 2) return;
+          var start = null;
+          function step(now) {
+            if (start === null) start = now;
+            var t = Math.min((now - start) / duration, 1);
+            window.scrollTo(0, startY + diff * ease(t));
+            if (t < 1) requestAnimationFrame(step);
+          }
+          requestAnimationFrame(step);
+        }
+        document.addEventListener('click', function (e) {
+          if (reduce.matches) return;
+          var link = e.target.closest && e.target.closest('a[href*="#"]');
+          if (!link) return;
+          var url = new URL(link.href, location.href);
+          if (url.pathname !== location.pathname || !url.hash) return;
+          var el = document.getElementById(decodeURIComponent(url.hash.slice(1)));
+          if (!el) return;
+          e.preventDefault();
+          var targetY = el.getBoundingClientRect().top + window.scrollY - NAV_OFFSET;
+          var duration = Math.min(1100, Math.max(500, Math.abs(targetY - window.scrollY) * 0.6));
+          animateScroll(targetY, duration);
+          history.pushState(null, '', url.hash);
+          // Move focus for keyboard and screen reader users.
+          if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex', '-1');
+          el.focus({ preventScroll: true });
+        });
+      })();
+    </script>
+  </body>
+</html>

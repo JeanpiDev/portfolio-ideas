@@ -1,0 +1,38 @@
+---
+import { getLangFromUrl, useTranslations } from '../i18n/utils';
+import Icon from './Icon.astro';
+
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
+const base = `/${lang}`;
+
+const items = [
+  { id: 'home', href: `${base}/#home`, icon: 'home', label: t('nav.home') },
+  { id: 'about', href: `${base}/#about`, icon: 'user', label: t('nav.about') },
+  { id: 'experience', href: `${base}/#experience`, icon: 'briefcase', label: t('nav.experience') },
+  { id: 'projects', href: `${base}/#projects`, icon: 'folder', label: t('nav.projects') },
+  { id: 'contact', href: `${base}/#contact`, icon: 'mail', label: t('nav.contact') },
+];
+---
+
+<!-- Floating dock (mobile only, icons only). The last item opens the assistant. -->
+<nav class="fixed bottom-4 left-1/2 z-40 -translate-x-1/2 md:hidden" aria-label={t('nav.quick')}>
+  <ul
+    class="flex items-center gap-0.5 rounded-2xl border border-[var(--border)] bg-[color-mix(in_srgb,var(--surface)_94%,transparent)] p-1.5 shadow-[var(--shadow)] backdrop-blur-md"
+  >
+    {
+      items.map((it) => (
+        <li>
+          <a href={it.href} data-nav-link={it.id} class="dock-item" aria-label={it.label} title={it.label}>
+            <Icon name={it.icon} size={20} />
+          </a>
+        </li>
+      ))
+    }
+    <li class="ml-0.5 border-l border-[var(--border)] pl-1">
+      <button type="button" data-ask-open class="dock-item dock-item-ai" aria-label={t('ask.open')} title={t('ask.open')}>
+        <Icon name="spark" size={20} />
+      </button>
+    </li>
+  </ul>
+</nav>
