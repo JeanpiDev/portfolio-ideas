@@ -20,7 +20,7 @@ and ship it.
 <table>
   <tr>
     <td width="50%"><a href="templates/desktop-os"><img src="templates/desktop-os/preview.png" alt="desktop-os: a portfolio styled as an early-2000s desktop, with a Projects explorer window, desktop icons, a taskbar and an AI helper speaking in a yellow balloon tip"></a><br><b>01 · desktop-os</b></td>
-    <td width="50%"><!-- ui-playground --></td>
+    <td width="50%"><a href="templates/ui-playground"><img src="templates/ui-playground/preview.png" alt="ui-playground: a headline reading Throw. Stack. Inspect. above a table of real UI components piled up by physics, next to the AI inspector panel with its drop zone"></a><br><b>02 · ui-playground</b></td>
   </tr>
   <tr>
     <td width="50%"><a href="templates/generative-ui"><img src="templates/generative-ui/preview.png" alt="generative-ui: a chat-first landing page with suggested questions, a pre-rendered sample answer with citations, a sources panel and a recruiter mode card"></a><br><b>03 · generative-ui</b></td>
