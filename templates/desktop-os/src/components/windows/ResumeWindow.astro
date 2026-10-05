@@ -1,0 +1,63 @@
+---
+/** Resume: a printable one-page summary (WordPad-like). */
+import Window from '../Window.astro';
+import Icon from '../Icon.astro';
+import { profile, type Lang } from '../../data/profile';
+import { useTranslations } from '../../i18n/ui';
+
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+const t = useTranslations(lang);
+---
+
+<Window id="resume" lang={lang} icon="resume" w={620} x={0.3} y={0.06}>
+  <div slot="chrome" class="xp-toolbar">
+    <button type="button" class="tool-btn" data-print>
+      <Icon name="print" />{t('resume.print')}
+    </button>
+  </div>
+  <div class="pad">
+    <article class="paper pad">
+      <h3 class="text-xl">{profile.name}</h3>
+      <p class="muted" style="margin:0 0 12px">
+        {profile.role[lang]} · {profile.location[lang]} · <a href={`mailto:${profile.email}`}>{profile.email}</a>
+      </p>
+      <p>{profile.summary[lang]}</p>
+
+      <h4 class="font-bold mt-4">{t('resume.experience')}</h4>
+      <ul class="pl-5 list-disc">
+        {
+          profile.experience.map((job) => (
+            <li>
+              <strong>{job.role[lang]}</strong>, {job.company} ({job.period[lang]}) — {job.description[lang]}
+            </li>
+          ))
+        }
+      </ul>
+
+      <h4 class="font-bold mt-4">{t('resume.skills')}</h4>
+      <ul class="pl-5 list-disc">
+        {
+          profile.skills.map((g) => (
+            <li>
+              <strong>{g.label[lang]}:</strong> {g.items.join(', ')}
+            </li>
+          ))
+        }
+      </ul>
+
+      <h4 class="font-bold mt-4">{t('resume.links')}</h4>
+      <p>
+        <a href={profile.links.github} rel="noopener">GitHub</a> ·
+        <a href={profile.links.linkedin} rel="noopener">LinkedIn</a>
+      </p>
+      <p class="muted text-xs">{t('resume.pdfNote')}</p>
+    </article>
+  </div>
+</Window>
+
+<script>
+  document.querySelectorAll('[data-print]').forEach((b) => b.addEventListener('click', () => window.print()));
+</script>

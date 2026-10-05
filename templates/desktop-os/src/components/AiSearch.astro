@@ -1,0 +1,264 @@
+---
+/**
+ * AI search (Start menu in desktop mode, inline section in classic mode).
+ * AI = balloon yellow + spark. Results stream into a balloon flyout with citations that
+ * open the related window. The element is moved between slots by its script.
+ */
+import Icon from './Icon.astro';
+import { useTranslations } from '../i18n/ui';
+import type { Lang } from '../data/profile';
+
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+const t = useTranslations(lang);
+---
+
+<section class="ai-section" id="ask" aria-labelledby="ask-title">
+  <h2 id="ask-title"><Icon name="spark" class="spark w-5 h-5" />{t('ai.section')}</h2>
+  <noscript><p class="balloon pad ai-section-noscript">{t('ai.noJs')}</p></noscript>
+  <div data-ai-slot="classic">
+    <ai-search class="js-only block">
+      <form class="ai-form balloon" novalidate>
+        <label for="ai-input"><Icon name="spark" class="spark w-4 h-4" />{t('ai.label')}</label>
+        <div class="ai-row">
+          <input
+            id="ai-input"
+            class="xp-input"
+            name="q"
+            type="text"
+            autocomplete="off"
+            placeholder={t('ai.placeholder')}
+            aria-describedby="ai-disclaimer"
+          />
+          <button class="xp-btn" type="submit" data-ai-submit>{t('ai.ask')}</button>
+        </div>
+        <p id="ai-disclaimer" class="ai-disclaimer">{t('ai.disclaimer')}</p>
+        <p class="ai-demo" hidden data-ai-demo><Icon name="info" class="w-4 h-4" />{t('ai.demo')}</p>
+      </form>
+      <div class="ai-results balloon" hidden data-ai-results role="region" aria-label={t('ai.results')}>
+        <div class="ai-flyout-head">
+          <Icon name="spark" class="spark w-4 h-4" />
+          <span>{t('ai.results')}</span>
+          <button type="button" class="x-btn" data-ai-close aria-label={t('ai.close')}><Icon name="close" /></button>
+        </div>
+        <ol class="ai-log" data-ai-log></ol>
+      </div>
+      <p class="sr-only" aria-live="polite" data-ai-live></p>
+    </ai-search>
+  </div>
+</section>
+
+<script>
+  import { ask, fmt, openWindow, pageData, reducedMotion, strings, type AiEvent } from '../scripts/client';
+  import { sourceTarget } from '../lib/windows';
+
+  const MAX = 500;
+
+  class AiSearch extends HTMLElement {
+    private form!: HTMLFormElement;
+    private input!: HTMLInputElement;
+    private submit!: HTMLButtonElement;
+    private log!: HTMLOListElement;
+    private results!: HTMLElement;
+    private live!: HTMLElement;
+    private controller: AbortController | null = null;
+    private history: { role: 'user' | 'assistant'; content: string }[] = [];
+
+    connectedCallback() {
+      if (this.form) return; // already initialised (element was moved between slots)
+      this.form = this.querySelector('form')!;
+      this.input = this.querySelector('input')!;
+      this.submit = this.querySelector('[data-ai-submit]')!;
+      this.log = this.querySelector('[data-ai-log]')!;
+      this.results = this.querySelector('[data-ai-results]')!;
+      this.live = this.querySelector('[data-ai-live]')!;
+      this.form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        if (this.controller) this.controller.abort();
+        else this.run(this.input.value.trim());
+      });
+      this.querySelector('[data-ai-close]')?.addEventListener('click', () => {
+        this.results.hidden = true;
+        this.input.focus();
+      });
+      this.results.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          e.stopPropagation();
+          this.results.hidden = true;
+          this.input.focus();
+        }
+      });
+    }
+
+    focusInput() {
+      this.input.focus();
+    }
+
+    private busy(on: boolean) {
+      const s = strings();
+      this.submit.textContent = on ? s['ai.stop'] : s['ai.ask'];
+    }
+
+    private async run(question: string, retryItem?: HTMLLIElement) {
+      const s = strings();
+      if (!question) {
+        this.input.focus();
+        return;
+      }
+      const item = retryItem ?? document.createElement('li');
+      item.replaceChildren();
+      if (!retryItem) this.log.prepend(item);
+      this.results.hidden = false;
+
+      const q = document.createElement('p');
+      q.className = 'ai-q';
+      q.innerHTML = `${s['ai.you']}: <strong></strong>`;
+      q.querySelector('strong')!.textContent = question;
+      const answer = document.createElement('div');
+      answer.className = 'ai-a';
+      answer.setAttribute('aria-busy', 'true');
+      const text = document.createElement('p');
+      text.className = 'ai-text';
+      text.style.margin = '0';
+      text.dataset.thinking = s['ai.thinking'];
+      answer.append(text);
+      item.append(q, answer);
+
+      if (question.length > MAX) {
+        answer.removeAttribute('aria-busy');
+        this.showError(answer, 'too_long', question, item);
+        return;
+      }
+
+      this.controller = new AbortController();
+      this.busy(true);
+      this.live.textContent = s['ai.writing'];
+      const sources = document.createElement('ul');
+      sources.className = 'ai-sources';
+      sources.setAttribute('aria-label', s['ai.sources']);
+      let full = '';
+      const reduce = reducedMotion();
+
+      const onEvent = (e: AiEvent) => {
+        if (e.type === 'text') {
+          full += e.delta;
+          if (!reduce) text.textContent = full; // reduced motion: render once at the end
+        } else if (e.type === 'component') {
+          answer.append(this.projectCard(e.id));
+        } else if (e.type === 'source') {
+          const { win, anchor } = sourceTarget(e.id);
+          const li = document.createElement('li');
+          const a = document.createElement('a');
+          a.href = `#${anchor}`;
+          a.dataset.open = win;
+          if (anchor !== `win-${win}`) a.dataset.highlight = anchor;
+          a.textContent = `[${e.n}] ${e.label}`;
+          a.setAttribute('aria-label', fmt(s['ai.sourceN'], { n: e.n, label: e.label }));
+          li.append(a);
+          sources.append(li);
+          if (!sources.isConnected) answer.append(sources);
+        }
+      };
+
+      const status = await ask({
+        message: question,
+        mode: 'search',
+        history: this.history,
+        signal: this.controller.signal,
+        onEvent,
+        onDemo: (demo) => {
+          const note = this.querySelector<HTMLElement>('[data-ai-demo]');
+          if (note) note.hidden = !demo;
+        },
+      });
+
+      this.controller = null;
+      this.busy(false);
+      text.textContent = full;
+      answer.setAttribute('aria-busy', 'false');
+
+      if (status === 'done') {
+        if (!full.trim()) text.textContent = full = s['err.noSource'];
+        this.live.textContent = full;
+        this.history.push({ role: 'user', content: question }, { role: 'assistant', content: full });
+        this.history = this.history.slice(-6);
+      } else if (status === 'aborted') {
+        text.textContent = (full ? full + ' ' : '') + s['ai.stopped'];
+        this.live.textContent = s['ai.stopped'];
+      } else {
+        this.live.textContent = '';
+        this.showError(answer, status, question, item);
+      }
+    }
+
+    private projectCard(id: string) {
+      const s = strings();
+      const name = pageData().projects[id] ?? id;
+      const card = document.createElement('div');
+      card.className = 'ai-card';
+      const label = document.createElement('div');
+      label.innerHTML = `<span class="text-xs">${s['ai.project']}</span><br><strong></strong>`;
+      label.querySelector('strong')!.textContent = name;
+      const link = document.createElement('a');
+      link.className = 'xp-btn';
+      link.href = `#project-${id}`;
+      link.dataset.open = 'projects';
+      link.dataset.highlight = `project-${id}`;
+      link.textContent = s['ai.openProject'];
+      link.setAttribute('aria-label', `${s['ai.openProject']}: ${name}`);
+      card.append(label, link);
+      return card;
+    }
+
+    private showError(answer: HTMLElement, code: string, question: string, item: HTMLLIElement) {
+      const s = strings();
+      const messages: Record<string, string> = {
+        network: s['err.network'],
+        upstream: s['err.network'],
+        rate_limited: s['err.rate'],
+        too_long: s['err.tooLong'],
+        stream_cut: s['err.cut'],
+        empty: s['err.generic'],
+      };
+      const box = document.createElement('div');
+      box.className = 'ai-alert';
+      box.setAttribute('role', 'alert');
+      const msg = document.createElement('span');
+      msg.textContent = messages[code] ?? s['err.generic'];
+      box.append(msg);
+      if (code === 'too_long') {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'xp-btn';
+        b.textContent = s['ai.label'];
+        b.addEventListener('click', () => this.input.focus());
+        box.append(b);
+      } else if (code !== 'rate_limited') {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'xp-btn';
+        b.textContent = s['ai.retry'];
+        b.addEventListener('click', () => this.run(question, item));
+        box.append(b);
+      }
+      answer.append(box);
+    }
+  }
+
+  if (!customElements.get('ai-search')) customElements.define('ai-search', AiSearch);
+
+  // Move the element between the classic section and the Start menu when the mode changes.
+  document.addEventListener('wm:mode', (e) => {
+    const os = (e as CustomEvent<{ os: boolean }>).detail.os;
+    const el = document.querySelector('ai-search');
+    const slot = document.querySelector(`[data-ai-slot="${os ? 'start' : 'classic'}"]`);
+    if (el && slot && el.parentElement !== slot) slot.append(el);
+  });
+  if (document.documentElement.classList.contains('os-ready')) {
+    const el = document.querySelector('ai-search');
+    const slot = document.querySelector('[data-ai-slot="start"]');
+    if (el && slot) slot.append(el);
+  }
+</script>

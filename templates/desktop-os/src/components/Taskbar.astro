@@ -1,0 +1,210 @@
+---
+/**
+ * Taskbar (start button, quick launch, window tabs, tray with clock) and the two-column
+ * Start menu. Only visible in desktop mode; everything here has a classic-page equivalent.
+ */
+import Icon from './Icon.astro';
+import UserTile from './UserTile.astro';
+import { profile, type Lang } from '../data/profile';
+import { useTranslations } from '../i18n/ui';
+import { WINDOW_IDS } from '../lib/windows';
+
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+const t = useTranslations(lang);
+const other = lang === 'en' ? 'es' : 'en';
+const icons = { projects: 'folder', about: 'notepad', experience: 'briefcase', resume: 'resume', contact: 'mail' } as const;
+---
+
+<div class="start-menu" id="start-menu" role="dialog" aria-label={t('taskbar.startLabel')} hidden>
+  <div class="sm-head">
+    <UserTile />
+    <span>{profile.name}</span>
+  </div>
+  <div class="sm-cols">
+    <div class="sm-left">
+      <ul class="sm-list" data-sm-main>
+        {
+          WINDOW_IDS.map((id) => (
+            <li>
+              <a class="sm-item" href={`#win-${id}`} data-open={id}>
+                <Icon name={icons[id]} />
+                <span>
+                  <strong>{t(`win.${id}`)}</strong>
+                  <span class="sm-desc">{t(`win.${id}.desc` as 'win.projects.desc')}</span>
+                </span>
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+      <ul class="sm-list" id="sm-all" hidden>
+        <li>
+          <button type="button" class="sm-item" data-buddy-toggle aria-pressed="true">
+            <Icon name="assistant" />
+            <span data-buddy-label>{t('start.assistantOn')}</span>
+          </button>
+        </li>
+        <li>
+          <button type="button" class="sm-item" data-motion-toggle>
+            <Icon name="motion" />
+            <span data-motion-label>{t('start.motionFull')}</span>
+          </button>
+        </li>
+        <li>
+          <a class="sm-item" href="?view=classic">
+            <Icon name="classic" />
+            <span>{t('start.classicLong')}</span>
+          </a>
+        </li>
+      </ul>
+      <div class="sm-sep" role="presentation"></div>
+      <button type="button" class="sm-item sm-all" aria-expanded="false" aria-controls="sm-all" data-sm-all>
+        <span>{t('start.allPrograms')}</span>
+        <Icon name="arrow" class="w-6 h-6" />
+      </button>
+    </div>
+    <div class="sm-right">
+      <ul class="sm-list">
+        <li>
+          <a class="sm-item" href={`mailto:${profile.email}`}><Icon name="mail" />{t('start.email')}</a>
+        </li>
+        <li>
+          <a class="sm-item" href={profile.links.github} rel="noopener"><Icon name="link" />GitHub</a>
+        </li>
+        <li>
+          <a class="sm-item" href={profile.links.linkedin} rel="noopener"><Icon name="link" />LinkedIn</a>
+        </li>
+      </ul>
+      <div class="sm-sep" role="presentation"></div>
+      <ul class="sm-list">
+        <li>
+          <a class="sm-item" href="#win-resume" data-open="resume"><Icon name="print" />{t('win.resume')}</a>
+        </li>
+        <li>
+          <a class="sm-item" href="#win-contact" data-open="contact"><Icon name="info" />{t('win.contact')}</a>
+        </li>
+      </ul>
+    </div>
+  </div>
+  <div data-ai-slot="start"></div>
+  <div class="sm-foot">
+    <button type="button" class="foot-btn" data-theme-cycle>
+      <Icon name="palette" />
+      <span>{t('start.theme')}: <span data-theme-name>{t('theme.blue')}</span></span>
+    </button>
+    <a class="foot-btn" href={`/${other}/`} hreflang={other} lang={other} aria-label={t('start.languageLabel')}>
+      <Icon name="globe" />{t('start.language')}
+    </a>
+    <a class="foot-btn classic-link" href="?view=classic"><Icon name="classic" />{t('start.classic')}</a>
+  </div>
+</div>
+
+<div class="taskbar" role="region" aria-label={t('taskbar.label')}>
+  <button type="button" class="start-btn" aria-expanded="false" aria-controls="start-menu" data-start>
+    <Icon name="logo" />{t('taskbar.start')}
+  </button>
+  <div class="tb-group tb-quick" role="group" aria-label={t('taskbar.quick')}>
+    <button type="button" class="tb-icon-btn" data-show-desktop aria-label={t('taskbar.showDesktop')}>
+      <Icon name="desktop" />
+    </button>
+    <button type="button" class="tb-icon-btn" data-ai-focus aria-label={t('ai.label')}>
+      <Icon name="spark" class="spark" />
+    </button>
+  </div>
+  <div class="tb-tabs" role="group" aria-label={t('taskbar.windows')}>
+    {
+      WINDOW_IDS.map((id) => (
+        <button type="button" class="tb-tab" data-tab={id} aria-pressed="false" hidden>
+          <Icon name={icons[id]} />
+          <span>{t(`win.${id}`)}</span>
+        </button>
+      ))
+    }
+  </div>
+  <div class="tb-group tb-tray" role="group" aria-label={t('taskbar.tray')}>
+    <button type="button" class="tb-icon-btn" data-buddy-toggle aria-pressed="true" aria-label={t('start.assistant')}>
+      <Icon name="assistant" />
+    </button>
+    <button type="button" class="tb-icon-btn" data-motion-toggle aria-pressed="false" aria-label={t('start.motionReduced')}>
+      <Icon name="motion" />
+    </button>
+    <a class="tb-icon-btn" href={`/${other}/`} hreflang={other} lang={other} aria-label={t('start.languageLabel')}>
+      {other.toUpperCase()}
+    </a>
+    <time class="tb-clock" data-clock aria-label={t('taskbar.clock')}></time>
+  </div>
+</div>
+
+<script>
+
+  const menu = document.getElementById('start-menu')!;
+  const startBtn = document.querySelector<HTMLButtonElement>('[data-start]')!;
+
+  function setOpen(open: boolean, returnFocus = true) {
+    menu.hidden = !open;
+    startBtn.setAttribute('aria-expanded', String(open));
+    if (open) {
+      (menu.querySelector<HTMLElement>('ai-search input') ?? menu.querySelector<HTMLElement>('.sm-item'))?.focus();
+    } else if (returnFocus) {
+      startBtn.focus();
+    }
+  }
+
+  startBtn.addEventListener('click', () => setOpen(menu.hidden));
+
+  menu.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      setOpen(false);
+    }
+  });
+
+  // Close on outside pointer, and after choosing something that opens a window.
+  document.addEventListener('pointerdown', (e) => {
+    const t = e.target as Node;
+    if (!menu.hidden && !menu.contains(t) && !startBtn.contains(t)) setOpen(false, false);
+  });
+  menu.addEventListener('click', (e) => {
+    if ((e.target as HTMLElement).closest('[data-open]')) setOpen(false, false);
+  });
+  menu.addEventListener('focusout', (e) => {
+    const next = e.relatedTarget as Node | null;
+    if (next && !menu.contains(next) && !startBtn.contains(next)) setOpen(false, false);
+  });
+
+  // "All Programs" disclosure.
+  const allBtn = menu.querySelector<HTMLButtonElement>('[data-sm-all]')!;
+  const all = document.getElementById('sm-all')!;
+  allBtn.addEventListener('click', () => {
+    const open = all.hidden;
+    all.hidden = !open;
+    allBtn.setAttribute('aria-expanded', String(open));
+  });
+
+  // Anything with data-ai-focus focuses the AI search (Start menu in desktop mode).
+  document.addEventListener('click', (e) => {
+    if (!(e.target as HTMLElement).closest('[data-ai-focus]')) return;
+    if (document.documentElement.classList.contains('os-ready')) setOpen(true);
+    else {
+      document.getElementById('ask')?.scrollIntoView();
+      document.querySelector<HTMLInputElement>('ai-search input')?.focus();
+    }
+  });
+
+  // Clock (not a live region on purpose: it would be noisy).
+  const clock = document.querySelector<HTMLTimeElement>('[data-clock]');
+  const lang = document.documentElement.lang;
+  const tick = () => {
+    if (!clock) return;
+    const now = new Date();
+    clock.dateTime = now.toISOString();
+    clock.textContent = now.toLocaleTimeString(lang, { hour: 'numeric', minute: '2-digit' });
+  };
+  tick();
+  setInterval(tick, 15_000);
+
+  document.addEventListener('wm:mode', () => setOpen(false, false));
+</script>

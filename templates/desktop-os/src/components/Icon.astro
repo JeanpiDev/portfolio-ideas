@@ -1,0 +1,61 @@
+---
+/**
+ * Original inline-SVG icons in an early-2000s desktop style (flat fills + highlights,
+ * no gradients so the same icon can appear many times without duplicate ids).
+ * All icons are decorative (aria-hidden) unless a `label` is passed.
+ * Add new icons to the `icons` map.
+ */
+interface Props {
+  name: keyof typeof icons;
+  class?: string;
+  label?: string;
+}
+
+const icons = {
+  logo: `<circle cx="16" cy="16" r="14" fill="#1f63d8"/><circle cx="16" cy="16" r="14" fill="none" stroke="#fff" stroke-width="2"/><path d="M9 23l7-15 7 15h-3.6l-1.3-3h-4.2l-1.3 3z" fill="#fff"/><path d="M14.4 17h3.2L16 13.2z" fill="#1f63d8"/><path d="M5 12c4-6 12-8 19-4" stroke="#7cc84a" stroke-width="2.4" fill="none" stroke-linecap="round"/>`,
+  folder: `<path d="M2 8h10l3 3h15v16H2z" fill="#e8b22d"/><path d="M2 12h28v15H2z" fill="#f7d26a"/><path d="M2 12h28v2H2z" fill="#fff3c4"/><path d="M2 27h28" stroke="#b07c12" stroke-width="1.2"/>`,
+  notepad: `<path d="M6 3h16l5 5v21H6z" fill="#fff" stroke="#5a6b8c" stroke-width="1.2"/><path d="M22 3v5h5" fill="#dfe6f3" stroke="#5a6b8c" stroke-width="1.2"/><path d="M9 12h14M9 16h14M9 20h14M9 24h9" stroke="#3a6fd8" stroke-width="1.6"/>`,
+  briefcase: `<rect x="3" y="9" width="26" height="18" rx="2" fill="#a0642a"/><rect x="3" y="9" width="26" height="6" rx="2" fill="#c27f3c"/><path d="M12 9V6h8v3" fill="none" stroke="#6b3f14" stroke-width="2"/><rect x="14" y="14" width="4" height="4" fill="#f2d16b" stroke="#6b3f14"/>`,
+  resume: `<path d="M6 3h16l5 5v21H6z" fill="#fff" stroke="#5a6b8c" stroke-width="1.2"/><path d="M22 3v5h5" fill="#dfe6f3" stroke="#5a6b8c" stroke-width="1.2"/><circle cx="12" cy="12" r="3" fill="#7a96df"/><path d="M8 19c1-3 7-3 8 0" fill="#7a96df"/><path d="M18 11h6M18 14h6M9 23h15M9 26h10" stroke="#555" stroke-width="1.4"/><path d="M21 19l2 6 1.5-2 2 1-2-6z" fill="#d0342c"/>`,
+  mail: `<rect x="3" y="7" width="26" height="18" rx="1" fill="#fff" stroke="#5a6b8c" stroke-width="1.2"/><path d="M3 8l13 10L29 8" fill="none" stroke="#3a6fd8" stroke-width="1.8"/><path d="M3 25l10-8M29 25l-10-8" stroke="#9aa9c4" stroke-width="1.2"/>`,
+  search: `<circle cx="13" cy="13" r="8" fill="#dff0ff" stroke="#2d5ac4" stroke-width="2.4"/><path d="M19 19l8 8" stroke="#6b4f1a" stroke-width="4" stroke-linecap="round"/>`,
+  globe: `<circle cx="16" cy="16" r="12" fill="#3a8be0"/><path d="M9 10c3 0 4 3 7 2s2 4 0 5-4 1-4 4-3 1-4-2 0-6 1-9z" fill="#5fb23a"/><path d="M20 20c2-1 4 0 5 2-1 2-3 4-5 4z" fill="#5fb23a"/><circle cx="16" cy="16" r="12" fill="none" stroke="#1d4f9c" stroke-width="1.4"/>`,
+  palette: `<path d="M16 3C8 3 3 9 3 15c0 7 6 12 12 12 2 0 3-1 3-3s-2-3 0-4 3 0 6 0c3 0 5-3 5-6C29 8 23 3 16 3z" fill="#f2e2b6" stroke="#8a6d2b" stroke-width="1.2"/><circle cx="9" cy="14" r="2.2" fill="#2d5ac4"/><circle cx="13" cy="9" r="2.2" fill="#3f9a3f"/><circle cx="20" cy="9" r="2.2" fill="#c4402a"/><circle cx="24" cy="15" r="2.2" fill="#9aa0ad"/>`,
+  classic: `<rect x="5" y="3" width="22" height="26" fill="#fff" stroke="#5a6b8c" stroke-width="1.2"/><path d="M9 8h14M9 12h14M9 16h14M9 20h14M9 24h10" stroke="#333" stroke-width="1.6"/>`,
+  desktop: `<rect x="3" y="5" width="26" height="18" rx="1" fill="#2d5ac4" stroke="#1a2d5c" stroke-width="1.2"/><path d="M4 18c5-4 10-3 14-1s8 0 10-1v6H4z" fill="#5fb23a"/><path d="M12 27h8M16 23v4" stroke="#555" stroke-width="2"/>`,
+  motion: `<path d="M4 16h6M4 11h9M4 21h9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="21" cy="16" r="6" fill="none" stroke="currentColor" stroke-width="2.4"/>`,
+  assistant: `<rect x="5" y="7" width="22" height="18" rx="7" fill="#ffffe1" stroke="#000" stroke-width="1.6"/><circle cx="12" cy="15" r="2" fill="#000"/><circle cx="20" cy="15" r="2" fill="#000"/><path d="M12 20q4 3 8 0" stroke="#000" stroke-width="1.6" fill="none" stroke-linecap="round"/><path d="M16 7V3" stroke="#000" stroke-width="1.6"/><circle cx="16" cy="3" r="1.8" fill="#000"/>`,
+  spark: `<path d="M12 2l2.2 6.6L21 11l-6.8 2.3L12 20l-2.2-6.7L3 11l6.8-2.4z" fill="currentColor"/>`,
+  back: `<circle cx="16" cy="16" r="12" fill="#3f9a3f"/><path d="M18 9l-7 7 7 7" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`,
+  forward: `<circle cx="16" cy="16" r="12" fill="#9aa0ad"/><path d="M14 9l7 7-7 7" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`,
+  up: `<path d="M2 10h10l3 3h15v14H2z" fill="#f7d26a" stroke="#b07c12"/><path d="M16 24v-8M12 19l4-4 4 4" stroke="#3f9a3f" stroke-width="2.6" fill="none"/>`,
+  print: `<rect x="8" y="4" width="16" height="9" fill="#fff" stroke="#555"/><rect x="3" y="12" width="26" height="11" rx="2" fill="#b8bcc8" stroke="#555"/><rect x="8" y="19" width="16" height="9" fill="#fff" stroke="#555"/><circle cx="25" cy="16" r="1.4" fill="#3f9a3f"/>`,
+  link: `<circle cx="16" cy="16" r="12" fill="#fff" stroke="#2d5ac4" stroke-width="2"/><path d="M13 19l6-6M11 17l-2 2a3 3 0 0 0 4 4l2-2M21 15l2-2a3 3 0 0 0-4-4l-2 2" stroke="#2d5ac4" stroke-width="2" fill="none" stroke-linecap="round"/>`,
+  copy: `<rect x="9" y="9" width="16" height="19" fill="#fff" stroke="#555" stroke-width="1.4"/><path d="M6 23V5h14" fill="none" stroke="#555" stroke-width="1.4"/>`,
+  arrow: `<circle cx="16" cy="16" r="11" fill="#3f9a3f"/><path d="M13 10l6 6-6 6" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`,
+  minimize: `<path d="M4 12h8" stroke="currentColor" stroke-width="3"/>`,
+  maximize: `<rect x="2.5" y="2.5" width="11" height="10" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M2.5 4h11" stroke="currentColor" stroke-width="3"/>`,
+  restore: `<rect x="2.5" y="5.5" width="8" height="8" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M5.5 5.5v-3h8v8h-3" fill="none" stroke="currentColor" stroke-width="1.5"/>`,
+  close: `<path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>`,
+  info: `<circle cx="16" cy="16" r="12" fill="#2d5ac4"/><circle cx="16" cy="10" r="2" fill="#fff"/><path d="M16 14v9" stroke="#fff" stroke-width="3"/>`,
+} as const;
+
+const viewBox: Partial<Record<keyof typeof icons, string>> = {
+  spark: '0 0 24 24',
+  minimize: '0 0 16 16',
+  maximize: '0 0 16 16',
+  restore: '0 0 16 16',
+  close: '0 0 16 16',
+};
+
+const { name, class: className, label } = Astro.props;
+const a11y = label ? { role: 'img', 'aria-label': label } : { 'aria-hidden': 'true', focusable: 'false' };
+---
+
+<svg
+  class={className}
+  viewBox={viewBox[name] ?? '0 0 32 32'}
+  xmlns="http://www.w3.org/2000/svg"
+  {...a11y}
+  set:html={icons[name]}
+/>

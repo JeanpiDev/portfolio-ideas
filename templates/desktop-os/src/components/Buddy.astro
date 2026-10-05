@@ -1,0 +1,208 @@
+---
+/**
+ * Assistant.exe — an original helper character (inline SVG) that talks through balloon tips.
+ * Tips come from /api/chat with mode "tip" and the opened window as context (canned in demo
+ * mode). Dismissible, never modal, and can be turned off (remembered in localStorage).
+ */
+import Icon from './Icon.astro';
+import { useTranslations } from '../i18n/ui';
+import type { Lang } from '../data/profile';
+
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+const t = useTranslations(lang);
+---
+
+<aside class="buddy" aria-label={t('buddy.name')} data-buddy hidden>
+  <div class="buddy-tip balloon" id="buddy-tip" hidden data-buddy-tip>
+    <div class="buddy-tip-head">
+      <Icon name="spark" class="spark w-4 h-4" />
+      <span data-buddy-title>{t('buddy.name')}</span>
+      <button type="button" class="x-btn" data-buddy-dismiss aria-label={t('buddy.dismiss')}><Icon name="close" /></button>
+    </div>
+    <p class="buddy-text" data-buddy-text>{t('buddy.hello')}</p>
+    <div data-buddy-extra></div>
+    <div class="buddy-actions">
+      <button type="button" class="xp-btn" data-buddy-dismiss>{t('buddy.dismiss')}</button>
+      <button type="button" class="xp-btn" data-buddy-off>{t('buddy.off')}</button>
+    </div>
+    <p class="ai-demo" hidden data-buddy-demo><Icon name="info" class="w-4 h-4" />{t('ai.demo')}</p>
+  </div>
+  <button
+    type="button"
+    class="buddy-figure"
+    aria-expanded="false"
+    aria-controls="buddy-tip"
+    aria-label={t('buddy.figure')}
+    data-buddy-figure
+  >
+    <svg viewBox="0 0 72 84" aria-hidden="true" focusable="false">
+      <ellipse cx="36" cy="80" rx="22" ry="3" fill="rgb(0 0 0 / .25)"></ellipse>
+      <line x1="36" y1="4" x2="36" y2="16" stroke="#000" stroke-width="2.5"></line>
+      <circle cx="36" cy="5" r="4" fill="#ffffe1" stroke="#000" stroke-width="2"></circle>
+      <rect x="8" y="16" width="56" height="44" rx="16" fill="#ffffe1" stroke="#000" stroke-width="2.5"></rect>
+      <rect x="15" y="24" width="42" height="26" rx="9" fill="#1f3f8f"></rect>
+      <rect x="23" y="30" width="8" height="12" rx="4" fill="#ffffe1"></rect>
+      <rect x="41" y="30" width="8" height="12" rx="4" fill="#ffffe1"></rect>
+      <path d="M58 20l1.5 4.5L64 26l-4.5 1.5L58 32l-1.5-4.5L52 26l4.5-1.5z" fill="#000"></path>
+      <rect x="22" y="62" width="28" height="14" rx="6" fill="#ffffe1" stroke="#000" stroke-width="2.5"></rect>
+    </svg>
+  </button>
+  <p class="sr-only" aria-live="polite" data-buddy-live></p>
+</aside>
+
+<script>
+  import { ask, fmt, pageData, reducedMotion, storage, strings, type AiEvent } from '../scripts/client';
+  import { isWindowId, sourceTarget, type WindowId } from '../lib/windows';
+
+  const root = document.querySelector<HTMLElement>('[data-buddy]')!;
+  const tip = root.querySelector<HTMLElement>('[data-buddy-tip]')!;
+  const title = root.querySelector<HTMLElement>('[data-buddy-title]')!;
+  const text = root.querySelector<HTMLElement>('[data-buddy-text]')!;
+  const extra = root.querySelector<HTMLElement>('[data-buddy-extra]')!;
+  const figure = root.querySelector<HTMLButtonElement>('[data-buddy-figure]')!;
+  const live = root.querySelector<HTMLElement>('[data-buddy-live]')!;
+  const demoNote = root.querySelector<HTMLElement>('[data-buddy-demo]')!;
+  const cache = new Map<WindowId, { text: string; events: AiEvent[] }>();
+  let controller: AbortController | null = null;
+
+  const isOn = () => storage('buddy') !== 'off';
+
+  function syncToggles() {
+    const on = isOn();
+    const s = strings();
+    root.hidden = !on;
+    document.querySelectorAll<HTMLElement>('[data-buddy-toggle]').forEach((b) => b.setAttribute('aria-pressed', String(on)));
+    document.querySelectorAll<HTMLElement>('[data-buddy-label]').forEach((l) => (l.textContent = on ? s['start.assistantOn'] : s['start.assistantOff']));
+  }
+
+  function showTip(show: boolean) {
+    tip.hidden = !show;
+    figure.setAttribute('aria-expanded', String(show));
+  }
+
+  function renderExtras(events: AiEvent[]) {
+    extra.replaceChildren();
+    const s = strings();
+    const sources = document.createElement('ul');
+    sources.className = 'ai-sources';
+    sources.setAttribute('aria-label', s['ai.sources']);
+    for (const e of events) {
+      if (e.type === 'component') {
+        const name = pageData().projects[e.id] ?? e.id;
+        const a = document.createElement('a');
+        a.className = 'xp-btn';
+        a.href = `#project-${e.id}`;
+        a.dataset.open = 'projects';
+        a.dataset.highlight = `project-${e.id}`;
+        a.textContent = `${s['ai.openProject']}: ${name}`;
+        extra.append(a);
+      } else if (e.type === 'source') {
+        const { win, anchor } = sourceTarget(e.id);
+        const li = document.createElement('li');
+        const a = document.createElement('a');
+        a.href = `#${anchor}`;
+        a.dataset.open = win;
+        if (anchor !== `win-${win}`) a.dataset.highlight = anchor;
+        a.textContent = `[${e.n}] ${e.label}`;
+        a.setAttribute('aria-label', fmt(s['ai.sourceN'], { n: e.n, label: e.label }));
+        li.append(a);
+        sources.append(li);
+      }
+    }
+    if (sources.children.length) extra.append(sources);
+  }
+
+  async function tipFor(id: WindowId) {
+    if (!isOn()) return;
+    const s = strings();
+    controller?.abort();
+    title.textContent = fmt(s['buddy.tipFor'], { label: s[`win.${id}`] ?? id });
+    showTip(true);
+    const cached = cache.get(id);
+    if (cached) {
+      text.textContent = cached.text;
+      renderExtras(cached.events);
+      live.textContent = `${title.textContent}: ${cached.text}`;
+      return;
+    }
+    text.textContent = '';
+    text.dataset.thinking = s['ai.thinking'];
+    text.setAttribute('aria-busy', 'true');
+    extra.replaceChildren();
+    const events: AiEvent[] = [];
+    let full = '';
+    const reduce = reducedMotion();
+    controller = new AbortController();
+    const status = await ask({
+      message: '',
+      mode: 'tip',
+      context: id,
+      signal: controller.signal,
+      onDemo: (demo) => (demoNote.hidden = !demo),
+      onEvent: (e) => {
+        if (e.type === 'text') {
+          full += e.delta;
+          if (!reduce) text.textContent = full;
+        } else events.push(e);
+      },
+    });
+    text.setAttribute('aria-busy', 'false');
+    if (status === 'aborted') return;
+    if (status !== 'done' || !full.trim()) {
+      // Tips are optional: on any error just fold the balloon away quietly.
+      showTip(false);
+      return;
+    }
+    text.textContent = full;
+    renderExtras(events);
+    cache.set(id, { text: full, events });
+    live.textContent = `${title.textContent}: ${full}`;
+  }
+
+  root.addEventListener('click', (e) => {
+    const t = e.target as HTMLElement;
+    if (t.closest('[data-buddy-dismiss]') || t.closest('[data-open]')) {
+      controller?.abort();
+      showTip(false);
+      if (t.closest('[data-buddy-dismiss]')) figure.focus();
+    } else if (t.closest('[data-buddy-off]')) {
+      controller?.abort();
+      storage('buddy', 'off');
+      showTip(false);
+      syncToggles();
+      live.textContent = strings()['buddy.offDone'];
+      document.querySelector<HTMLElement>('.tb-tray [data-buddy-toggle]')?.focus();
+    } else if (t.closest('[data-buddy-figure]')) {
+      showTip(tip.hidden);
+    }
+  });
+  tip.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      e.stopPropagation();
+      showTip(false);
+      figure.focus();
+    }
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!(e.target as HTMLElement).closest('[data-buddy-toggle]')) return;
+    storage('buddy', isOn() ? 'off' : 'on');
+    syncToggles();
+    if (!isOn()) controller?.abort();
+  });
+
+  document.addEventListener('wm:open', (e) => {
+    const { id, user } = (e as CustomEvent<{ id: string; user: boolean }>).detail;
+    if (user && isWindowId(id)) tipFor(id);
+  });
+
+  syncToggles();
+  // First visit: greet once (no API call).
+  if (isOn() && !storage('buddy-greeted')) {
+    storage('buddy-greeted', '1');
+    setTimeout(() => showTip(true), reducedMotion() ? 0 : 1200);
+  }
+</script>

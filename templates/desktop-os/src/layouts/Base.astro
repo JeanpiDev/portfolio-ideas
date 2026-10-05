@@ -1,0 +1,67 @@
+---
+import '../styles/global.css';
+import { profile, type Lang } from '../data/profile';
+import { clientStrings, useTranslations } from '../i18n/ui';
+
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+const t = useTranslations(lang);
+const other = lang === 'en' ? 'es' : 'en';
+const canonical = new URL(`/${lang}/`, Astro.site);
+const pageData = {
+  lang,
+  strings: clientStrings(lang),
+  projects: Object.fromEntries(profile.projects.map((p) => [p.id, p.name[lang]])),
+};
+---
+
+<!doctype html>
+<html lang={lang} data-theme="blue">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{t('meta.title')}</title>
+    <meta name="description" content={t('meta.description')} />
+    <link rel="canonical" href={canonical} />
+    <link rel="alternate" hreflang={other} href={new URL(`/${other}/`, Astro.site)} />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta name="color-scheme" content="light" />
+    <meta property="og:title" content={t('meta.title')} />
+    <meta property="og:description" content={t('meta.description')} />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={canonical} />
+    <!--
+      Runs before paint (no flash): colour scheme, motion preference and view mode.
+      Desktop mode = JS + viewport >= 768px + the visitor did not choose classic mode.
+      `?view=classic` / `?view=desktop` set and remember the choice.
+    -->
+    <script is:inline>
+      (function () {
+        var d = document.documentElement;
+        d.classList.add('js');
+        var get = function (k) { try { return localStorage.getItem(k); } catch (e) { return null; } };
+        var set = function (k, v) { try { localStorage.setItem(k, v); } catch (e) {} };
+        var theme = get('theme');
+        if (theme === 'olive' || theme === 'silver') d.setAttribute('data-theme', theme);
+        if (get('motion') === 'reduced') d.classList.add('motion-reduced');
+        var p = new URLSearchParams(location.search).get('view');
+        if (p === 'classic' || p === 'desktop') set('view', p);
+        var view = p || get('view');
+        var wide = matchMedia('(min-width: 768px)').matches;
+        if (wide) d.classList.add('can-os');
+        if (wide && view !== 'classic') {
+          d.classList.add('os');
+          // Safety net: if the window manager never starts, fall back to the classic page.
+          setTimeout(function () { if (!d.classList.contains('os-ready')) d.classList.remove('os'); }, 3000);
+        }
+        matchMedia('(min-width: 768px)').addEventListener('change', function (m) { d.classList.toggle('can-os', m.matches); });
+      })();
+    </script>
+  </head>
+  <body>
+    <script type="application/json" id="os-data" set:html={JSON.stringify(pageData).replace(/</g, '\\u003c')} />
+    <slot />
+  </body>
+</html>

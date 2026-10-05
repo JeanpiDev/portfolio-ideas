@@ -1,0 +1,66 @@
+---
+/**
+ * Window chrome. In classic mode (no JS, < 768px, or by choice) it renders as a normal
+ * section with a title bar. In desktop mode the window manager adds role="dialog"
+ * (non-modal), tabindex and positioning; the title-bar buttons become visible.
+ */
+import Icon from './Icon.astro';
+import { useTranslations } from '../i18n/ui';
+import type { Lang } from '../data/profile';
+import type { WindowId } from '../lib/windows';
+
+interface Props {
+  id: WindowId;
+  lang: Lang;
+  icon: 'folder' | 'notepad' | 'briefcase' | 'resume' | 'mail';
+  /** Default width (px) and position (fraction of the desktop) used by the window manager. */
+  w?: number;
+  x?: number;
+  y?: number;
+}
+
+const { id, lang, icon, w = 560, x = 0.2, y = 0.08 } = Astro.props;
+const t = useTranslations(lang);
+const title = t(`win.${id}` as 'win.projects');
+---
+
+<section
+  class="win"
+  id={`win-${id}`}
+  data-win={id}
+  data-w={w}
+  data-x={x}
+  data-y={y}
+  aria-labelledby={`win-${id}-title`}
+>
+  <div class="win-bar" data-drag>
+    <Icon name={icon} class="win-icon" />
+    <h2 class="win-title" id={`win-${id}-title`}>{title}</h2>
+    <div class="win-ctrls">
+      <button type="button" class="win-ctrl" data-action="min" aria-label={`${t('win.minimize')} ${title}`}>
+        <Icon name="minimize" />
+      </button>
+      <button
+        type="button"
+        class="win-ctrl"
+        data-action="max"
+        aria-label={`${t('win.maximize')} ${title}`}
+        data-label-max={`${t('win.maximize')} ${title}`}
+        data-label-restore={`${t('win.restore')} ${title}`}
+      >
+        <Icon name="maximize" class="i-max" />
+        <Icon name="restore" class="i-restore" />
+      </button>
+      <button type="button" class="win-ctrl" data-action="close" aria-label={`${t('win.close')} ${title}`}>
+        <Icon name="close" />
+      </button>
+    </div>
+  </div>
+  <slot name="chrome" />
+  <div class="win-body">
+    <slot />
+  </div>
+  <div class="win-status">
+    <slot name="status" />
+  </div>
+</section>

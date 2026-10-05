@@ -1,0 +1,54 @@
+---
+/** Contact: a small dialog-style window. Email only (no form, no backend). */
+import Window from '../Window.astro';
+import Icon from '../Icon.astro';
+import { profile, type Lang } from '../../data/profile';
+import { useTranslations } from '../../i18n/ui';
+
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+const t = useTranslations(lang);
+---
+
+<Window id="contact" lang={lang} icon="mail" w={460} x={0.5} y={0.22}>
+  <div class="pad">
+    <p class="flex items-center gap-2" style="margin-top:0">
+      <Icon name="info" class="w-8 h-8 flex-none" />
+      {t('contact.lead')}
+    </p>
+    <div class="form-row">
+      <label for="contact-email">{t('contact.email')}</label>
+      <div class="row">
+        <input id="contact-email" class="xp-input" type="text" readonly value={profile.email} />
+        <button type="button" class="xp-btn js-only" data-copy={profile.email}>
+          <Icon name="copy" class="w-5 h-5" />{t('contact.copy')}
+        </button>
+      </div>
+      <p class="sr-only" aria-live="polite" data-copy-status></p>
+    </div>
+    <div class="contact-links">
+      <a class="xp-btn" href={`mailto:${profile.email}`}><Icon name="mail" class="w-5 h-5" />{profile.email}</a>
+      <a class="xp-btn" href={profile.links.github} rel="noopener"><Icon name="link" class="w-5 h-5" />{t('contact.github')}</a>
+      <a class="xp-btn" href={profile.links.linkedin} rel="noopener"><Icon name="link" class="w-5 h-5" />{t('contact.linkedin')}</a>
+    </div>
+    <p class="muted text-xs">{profile.location[lang]}</p>
+  </div>
+</Window>
+
+<script>
+  import { strings } from '../../scripts/client';
+
+  document.querySelectorAll<HTMLButtonElement>('[data-copy]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const status = btn.closest('.form-row')?.querySelector('[data-copy-status]');
+      try {
+        await navigator.clipboard.writeText(btn.dataset.copy ?? '');
+        if (status) status.textContent = strings()['contact.copied'];
+      } catch {
+        (btn.previousElementSibling as HTMLInputElement | null)?.select();
+      }
+    });
+  });
+</script>

@@ -1,0 +1,11 @@
+---
+/** The persona's "user picture": an original drawn tile with initials (no photos). */
+import { profile } from '../data/profile';
+---
+
+<svg class="user-tile" viewBox="0 0 48 48" aria-hidden="true" focusable="false">
+  <rect width="48" height="48" fill="#6fa8f0"></rect>
+  <path d="M0 34c10-8 22-6 30-2s14 2 18 0v16H0z" fill="#5fb23a"></path>
+  <circle cx="36" cy="12" r="5" fill="#ffe27a"></circle>
+  <text x="18" y="30" text-anchor="middle" font-family="Tahoma, Verdana, sans-serif" font-size="16" font-weight="700" fill="#fff" stroke="#0a3d91" stroke-width="0.8">{profile.initials}</text>
+</svg>

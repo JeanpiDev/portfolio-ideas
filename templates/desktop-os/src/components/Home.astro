@@ -1,0 +1,106 @@
+---
+/**
+ * The whole page. Static HTML is a complete classic page (no JS, phones, classic mode);
+ * the scripts upgrade it into the desktop on wide screens.
+ */
+import Base from '../layouts/Base.astro';
+import Icon from './Icon.astro';
+import Wallpaper from './Wallpaper.astro';
+import AiSearch from './AiSearch.astro';
+import Buddy from './Buddy.astro';
+import Taskbar from './Taskbar.astro';
+import Boot from './Boot.astro';
+import ProjectsWindow from './windows/ProjectsWindow.astro';
+import AboutWindow from './windows/AboutWindow.astro';
+import ExperienceWindow from './windows/ExperienceWindow.astro';
+import ResumeWindow from './windows/ResumeWindow.astro';
+import ContactWindow from './windows/ContactWindow.astro';
+import { profile, type Lang } from '../data/profile';
+import { languages, useTranslations } from '../i18n/ui';
+import { WINDOW_IDS } from '../lib/windows';
+
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+const t = useTranslations(lang);
+const other: Lang = lang === 'en' ? 'es' : 'en';
+const icons = { projects: 'folder', about: 'notepad', experience: 'briefcase', resume: 'resume', contact: 'mail' } as const;
+---
+
+<Base lang={lang}>
+  <a class="skip-link" href="#content">{t('skip.content')}</a>
+  <a class="skip-link skip-classic" href="?view=classic#content">{t('skip.classic')}</a>
+
+  <div class="page">
+    <header class="classic-header">
+      <div class="head-bar">
+        <Icon name="logo" class="w-10 h-10 flex-none" />
+        <div>
+          <h1>{profile.name}</h1>
+          <p class="head-role">{profile.role[lang]} · {profile.location[lang]}</p>
+        </div>
+      </div>
+      <div class="classic-tools">
+        <label class="js-only flex items-center gap-2">
+          {t('theme.label')}
+          <select data-theme-select>
+            <option value="blue">{t('theme.blue')}</option>
+            <option value="olive">{t('theme.olive')}</option>
+            <option value="silver">{t('theme.silver')}</option>
+          </select>
+        </label>
+        <button type="button" class="xp-btn js-only" data-motion-toggle>
+          <span data-motion-label>{t('start.motionFull')}</span>
+        </button>
+        <a class="xp-btn" href={`/${other}/`} hreflang={other} lang={other}>{languages[other]}</a>
+        <a class="xp-btn os-capable-only" href="?view=desktop">
+          <Icon name="desktop" class="w-6 h-6" />{t('classic.toDesktop')}
+        </a>
+      </div>
+      <p class="classic-intro">{t('classic.intro')}</p>
+    </header>
+
+    <window-manager class="block">
+      <Wallpaper />
+      <nav class="desk-icons" aria-label={t('nav.sections')}>
+        <ul>
+          {
+            WINDOW_IDS.map((id) => (
+              <li>
+                <a class="desk-icon" href={`#win-${id}`} data-open={id}>
+                  <Icon name={icons[id]} />
+                  <span class="desk-label">{t(`win.${id}`)}</span>
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+      </nav>
+      <main id="content" class="win-layer" tabindex="-1">
+        <AiSearch lang={lang} />
+        <ProjectsWindow lang={lang} />
+        <AboutWindow lang={lang} />
+        <ExperienceWindow lang={lang} />
+        <ResumeWindow lang={lang} />
+        <ContactWindow lang={lang} />
+      </main>
+    </window-manager>
+
+    <Buddy lang={lang} />
+    <Taskbar lang={lang} />
+
+    <footer class="classic-footer">
+      <p>{t('footer.credits')}</p>
+      <p>{t('footer.notAffiliated')}</p>
+    </footer>
+  </div>
+
+  <Boot lang={lang} />
+  <p class="sr-only" aria-live="polite" data-pref-live></p>
+</Base>
+
+<script>
+  import '../scripts/prefs';
+  import '../scripts/wm';
+</script>

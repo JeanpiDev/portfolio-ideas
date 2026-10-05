@@ -1,0 +1,39 @@
+---
+/** Experience: work history as classic group boxes. */
+import Window from '../Window.astro';
+import { profile, type Lang } from '../../data/profile';
+
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+---
+
+<Window id="experience" lang={lang} icon="briefcase" w={600} x={0.24} y={0.12}>
+  <div class="pad">
+    <ol class="timeline">
+      {
+        profile.experience.map((job) => (
+          <li class="groupbox" id={`job-${job.id}`} tabindex="-1">
+            <h3 class="gb-title">
+              {job.role[lang]} · {job.company}
+            </h3>
+            <time>{job.period[lang]}</time>
+            <p>{job.description[lang]}</p>
+            <ul>
+              {job.highlights[lang].map((h) => (
+                <li>{h}</li>
+              ))}
+            </ul>
+            <ul class="tags">
+              {job.tags.map((tag) => (
+                <li>{tag}</li>
+              ))}
+            </ul>
+          </li>
+        ))
+      }
+    </ol>
+  </div>
+  <Fragment slot="status"><span>{profile.experience.length} · {profile.name}</span></Fragment>
+</Window>

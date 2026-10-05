@@ -1,0 +1,59 @@
+---
+/**
+ * Optional boot + welcome screen. Shown only on the first visit in desktop mode, never with
+ * reduced motion. It is aria-hidden, contains nothing focusable, and ANY key press, click or
+ * tap dismisses it at once, so keyboard and screen-reader users are never blocked (the skip
+ * link still goes straight to classic mode). Remove this component to disable it.
+ */
+import Icon from './Icon.astro';
+import UserTile from './UserTile.astro';
+import { profile, type Lang } from '../data/profile';
+import { useTranslations } from '../i18n/ui';
+
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+const t = useTranslations(lang);
+---
+
+<div class="boot" aria-hidden="true" hidden data-boot>
+  <div class="boot-stage" data-boot-stage="boot">
+    <div class="boot-logo"><Icon name="logo" />{t('os.name')}</div>
+    <div class="boot-bar"><span></span></div>
+    <p>{t('boot.skip')}</p>
+  </div>
+  <div class="boot-stage" data-boot-stage="welcome" hidden>
+    <span class="welcome-word">{t('boot.welcome')}</span>
+    <span class="welcome-user"><UserTile />{profile.name}</span>
+  </div>
+</div>
+
+<script>
+  import { reducedMotion, storage } from '../scripts/client';
+
+  const boot = document.querySelector<HTMLElement>('[data-boot]');
+  const html = document.documentElement;
+  if (boot && html.classList.contains('os') && !storage('booted') && !reducedMotion()) {
+    storage('booted', '1');
+    const stages = boot.querySelectorAll<HTMLElement>('[data-boot-stage]');
+    let timers: number[] = [];
+    const end = () => {
+      timers.forEach(clearTimeout);
+      boot.hidden = true;
+      document.removeEventListener('keydown', end, true);
+      document.removeEventListener('pointerdown', end, true);
+    };
+    boot.hidden = false;
+    document.addEventListener('keydown', end, true);
+    document.addEventListener('pointerdown', end, true);
+    timers.push(
+      window.setTimeout(() => {
+        stages[0].hidden = true;
+        stages[1].hidden = false;
+        boot.classList.add('is-welcome');
+      }, 1400),
+      window.setTimeout(end, 2600),
+    );
+  }
+</script>

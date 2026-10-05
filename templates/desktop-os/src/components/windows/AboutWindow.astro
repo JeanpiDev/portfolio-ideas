@@ -1,0 +1,30 @@
+---
+/** About.txt: a notepad-style window. */
+import Window from '../Window.astro';
+import { profile, type Lang } from '../../data/profile';
+import { useTranslations } from '../../i18n/ui';
+
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+const t = useTranslations(lang);
+---
+
+<Window id="about" lang={lang} icon="notepad" w={520} x={0.42} y={0.1}>
+  <div slot="chrome" class="xp-menubar" aria-hidden="true">
+    <span>{t('explorer.menu.file')}</span><span>{t('explorer.menu.edit')}</span><span>{t('explorer.menu.view')}</span><span>{t('explorer.menu.help')}</span>
+  </div>
+  <div class="paper notepad">
+    <p><strong>{profile.name}</strong> — {profile.role[lang]}</p>
+    <p>{profile.summary[lang]}</p>
+    {profile.about[lang].map((para) => <p>{para}</p>)}
+    <dl>
+      <dt>{t('about.location')}</dt>
+      <dd>{profile.location[lang]}</dd>
+      <dt>{t('about.skills')}</dt>
+      <dd>{profile.skills.map((g) => `${g.label[lang]}: ${g.items.join(', ')}`).join(' · ')}</dd>
+    </dl>
+  </div>
+  <Fragment slot="status"><span>UTF-8</span></Fragment>
+</Window>

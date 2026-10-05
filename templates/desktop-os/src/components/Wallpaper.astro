@@ -1,0 +1,44 @@
+---
+/**
+ * Original wallpaper: a green rolling hill under a blue sky with soft clouds, drawn in SVG.
+ * (Evokes the early-2000s look; it is not based on, or traced from, any photograph.)
+ */
+---
+
+<svg class="wallpaper" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
+  <defs>
+    <linearGradient id="wp-sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1b5cc2"></stop>
+      <stop offset="0.45" stop-color="#4a8fe6"></stop>
+      <stop offset="0.7" stop-color="#9cc7f5"></stop>
+    </linearGradient>
+    <linearGradient id="wp-hill" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#7cc84a"></stop>
+      <stop offset="0.35" stop-color="#4fa22e"></stop>
+      <stop offset="1" stop-color="#2b6d1a"></stop>
+    </linearGradient>
+    <linearGradient id="wp-hill-back" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#5aa53a"></stop>
+      <stop offset="1" stop-color="#2f7a22"></stop>
+    </linearGradient>
+    <radialGradient id="wp-shine" cx="0.38" cy="0.62" r="0.3">
+      <stop offset="0" stop-color="#c8f08a" stop-opacity="0.55"></stop>
+      <stop offset="1" stop-color="#c8f08a" stop-opacity="0"></stop>
+    </radialGradient>
+    <filter id="wp-blur" x="-20%" y="-50%" width="140%" height="200%">
+      <feGaussianBlur stdDeviation="16"></feGaussianBlur>
+    </filter>
+  </defs>
+  <rect width="1600" height="1000" fill="url(#wp-sky)"></rect>
+  <g fill="#fff" filter="url(#wp-blur)" opacity="0.85">
+    <ellipse cx="300" cy="190" rx="170" ry="38"></ellipse>
+    <ellipse cx="420" cy="170" rx="110" ry="44"></ellipse>
+    <ellipse cx="1050" cy="120" rx="210" ry="40"></ellipse>
+    <ellipse cx="1180" cy="100" rx="120" ry="46"></ellipse>
+    <ellipse cx="1380" cy="330" rx="150" ry="30"></ellipse>
+    <ellipse cx="760" cy="300" rx="120" ry="24" opacity="0.7"></ellipse>
+  </g>
+  <path d="M0 700 C 300 600, 520 640, 800 660 S 1300 600, 1600 640 V1000 H0 Z" fill="url(#wp-hill-back)"></path>
+  <path d="M0 760 C 220 640, 520 560, 760 590 C 1000 620, 1260 720, 1600 700 V1000 H0 Z" fill="url(#wp-hill)"></path>
+  <rect width="1600" height="1000" fill="url(#wp-shine)"></rect>
+</svg>
