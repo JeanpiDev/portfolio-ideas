@@ -27,7 +27,7 @@ and ship it.
     <td width="50%"><a href="templates/chat-playground"><img src="templates/chat-playground/preview.png" alt="chat-playground: a hero with an inline AI chat next to a sample answer card showing a loan simulator component and a Send it to the playground button"></a><br><b>04 · chat-playground</b></td>
   </tr>
   <tr>
-    <td width="50%"><!-- editorial-terminal --></td>
+    <td width="50%"><a href="templates/editorial-terminal"><img src="templates/editorial-terminal/preview.png" alt="editorial-terminal: a one-page portfolio with a terminal prompt, a large editorial serif name, and buttons to talk, ask the AI or view experience"></a><br><b>05 · editorial-terminal</b></td>
     <td width="50%"></td>
   </tr>
 </table>
