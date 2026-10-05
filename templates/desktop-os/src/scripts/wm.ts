@@ -161,6 +161,19 @@ class WindowManager extends HTMLElement {
     this.renderTaskbar();
   }
 
+  /** Closes every window without moving focus (used by Start > Close all windows). */
+  closeAll() {
+    this.wins.forEach((w, id) => {
+      this.state.set(id, 'closed');
+      w.removeAttribute('data-max');
+      this.apply(id);
+    });
+    this.order = [];
+    this.active = null;
+    this.wins.forEach((el) => el.classList.remove('is-active'));
+    this.renderTaskbar();
+  }
+
   close(id: WindowId) {
     const w = this.wins.get(id)!;
     this.state.set(id, 'closed');
@@ -280,6 +293,10 @@ class WindowManager extends HTMLElement {
       const id = tab.dataset.tab as WindowId;
       if (this.state.get(id) === 'open' && this.active === id) this.minimize(id);
       else this.open(id, tab, undefined, false);
+      return;
+    }
+    if (target.closest('[data-close-all]') && this.enabled) {
+      this.closeAll();
       return;
     }
     if (target.closest('[data-show-desktop]') && this.enabled) {

@@ -1,0 +1,36 @@
+---
+/** Collapsible task-pane group box (header button with aria-expanded + double chevron). */
+import Icon from './Icon.astro';
+
+interface Props {
+  id: string;
+  title: string;
+  /** "Details" style: plain body, no link list. */
+  plain?: boolean;
+  primary?: boolean;
+}
+const { id, title, primary = false } = Astro.props;
+---
+
+<div class:list={['pane-box', { 'is-primary': primary }]}>
+  <h3 class="pane-h">
+    <button type="button" class="pane-head" aria-expanded="true" aria-controls={id}>
+      <span>{title}</span>
+      <span class="pane-chev"><Icon name="chevronUp" /></span>
+    </button>
+  </h3>
+  <div class="pane-body" id={id}>
+    <slot />
+  </div>
+</div>
+
+<script>
+  document.addEventListener('click', (e) => {
+    const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('.pane-head');
+    if (!btn) return;
+    const body = document.getElementById(btn.getAttribute('aria-controls') ?? '');
+    const open = btn.getAttribute('aria-expanded') !== 'true';
+    btn.setAttribute('aria-expanded', String(open));
+    if (body) body.hidden = !open;
+  });
+</script>

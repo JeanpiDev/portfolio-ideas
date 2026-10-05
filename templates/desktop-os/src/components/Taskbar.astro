@@ -15,90 +15,115 @@ interface Props {
 const { lang } = Astro.props;
 const t = useTranslations(lang);
 const other = lang === 'en' ? 'es' : 'en';
-const icons = { projects: 'folder', about: 'notepad', experience: 'briefcase', resume: 'resume', contact: 'mail' } as const;
+const icons = { projects: 'folder', about: 'notepad', experience: 'briefcase', resume: 'resume', contact: 'mail', archive: 'archive' } as const;
 ---
 
 <div class="start-menu" id="start-menu" role="dialog" aria-label={t('taskbar.startLabel')} hidden>
   <div class="sm-head">
     <UserTile />
-    <span>{profile.name}</span>
+    <span class="sm-user">{profile.name}</span>
   </div>
   <div class="sm-cols">
     <div class="sm-left">
-      <ul class="sm-list" data-sm-main>
+      <ul class="sm-list">
+        <li>
+          <a class="sm-item sm-pinned" href="#win-projects" data-open="projects">
+            <Icon name="folder" />
+            <span><strong>{t('win.projects')}</strong><span class="sm-desc">{t('start.projectsDesc')}</span></span>
+          </a>
+        </li>
+        <li>
+          <button type="button" class="sm-item sm-pinned" data-ai-focus>
+            <Icon name="assistant" />
+            <span><strong>{t('start.assistantItem')} <Icon name="spark" class="spark inline-spark" /></strong><span class="sm-desc">{t('start.assistantDesc')}</span></span>
+          </button>
+        </li>
+      </ul>
+      <div class="sm-sep" role="presentation"></div>
+      <ul class="sm-list" aria-label={t('start.recent')}>
         {
-          WINDOW_IDS.map((id) => (
+          profile.projects.map((p) => (
             <li>
-              <a class="sm-item" href={`#win-${id}`} data-open={id}>
-                <Icon name={icons[id]} />
-                <span>
-                  <strong>{t(`win.${id}`)}</strong>
-                  <span class="sm-desc">{t(`win.${id}.desc` as 'win.projects.desc')}</span>
-                </span>
+              <a class="sm-item" href={`#project-${p.id}`} data-open="projects" data-highlight={`project-${p.id}`}>
+                <Icon name="notepad" class="sm-small" />
+                <span>{p.name[lang]}</span>
               </a>
             </li>
           ))
         }
       </ul>
-      <ul class="sm-list" id="sm-all" hidden>
+      <ul class="sm-list sm-allprog" id="sm-all" hidden>
+        {
+          WINDOW_IDS.map((id) => (
+            <li>
+              <a class="sm-item" href={`#win-${id}`} data-open={id}>
+                <Icon name={icons[id]} class="sm-small" />
+                <span>{t(`win.${id}`)}</span>
+              </a>
+            </li>
+          ))
+        }
         <li>
           <button type="button" class="sm-item" data-buddy-toggle aria-pressed="true">
-            <Icon name="assistant" />
+            <Icon name="assistant" class="sm-small" />
             <span data-buddy-label>{t('start.assistantOn')}</span>
           </button>
         </li>
         <li>
           <button type="button" class="sm-item" data-motion-toggle>
-            <Icon name="motion" />
+            <Icon name="motion" class="sm-small" />
             <span data-motion-label>{t('start.motionFull')}</span>
           </button>
         </li>
-        <li>
-          <a class="sm-item" href="?view=classic">
-            <Icon name="classic" />
-            <span>{t('start.classicLong')}</span>
-          </a>
-        </li>
       </ul>
-      <div class="sm-sep" role="presentation"></div>
+      <div class="sm-sep sm-sep-bottom" role="presentation"></div>
       <button type="button" class="sm-item sm-all" aria-expanded="false" aria-controls="sm-all" data-sm-all>
         <span>{t('start.allPrograms')}</span>
-        <Icon name="arrow" class="w-6 h-6" />
+        <Icon name="arrow" />
       </button>
     </div>
     <div class="sm-right">
       <ul class="sm-list">
-        <li>
-          <a class="sm-item" href={`mailto:${profile.email}`}><Icon name="mail" />{t('start.email')}</a>
-        </li>
-        <li>
-          <a class="sm-item" href={profile.links.github} rel="noopener"><Icon name="link" />GitHub</a>
-        </li>
-        <li>
-          <a class="sm-item" href={profile.links.linkedin} rel="noopener"><Icon name="link" />LinkedIn</a>
-        </li>
+        {
+          (['about', 'experience', 'resume', 'contact'] as const).map((id) => (
+            <li>
+              <a class="sm-item sm-strong" href={`#win-${id}`} data-open={id}>
+                <Icon name={icons[id]} />
+                {t(`win.${id}`)}
+              </a>
+            </li>
+          ))
+        }
       </ul>
       <div class="sm-sep" role="presentation"></div>
       <ul class="sm-list">
         <li>
-          <a class="sm-item" href="#win-resume" data-open="resume"><Icon name="print" />{t('win.resume')}</a>
+          <button type="button" class="sm-item" data-theme-cycle>
+            <Icon name="palette" />
+            <span>{t('start.theme')}: <span data-theme-name>{t('theme.blue')}</span></span>
+          </button>
         </li>
         <li>
-          <a class="sm-item" href="#win-contact" data-open="contact"><Icon name="info" />{t('win.contact')}</a>
+          <a class="sm-item" href={`/${other}/`} hreflang={other} lang={other} aria-label={t('start.languageLabel')}>
+            <Icon name="globe" />{t('start.language')}
+          </a>
         </li>
+        <li>
+          <a class="sm-item" href="?view=classic"><Icon name="classic" />{t('start.classicLong')}</a>
+        </li>
+      </ul>
+      <div class="sm-sep" role="presentation"></div>
+      <ul class="sm-list">
+        <li><a class="sm-item" href={`mailto:${profile.email}`}><Icon name="mail" />{t('start.email')}</a></li>
+        <li><a class="sm-item" href={profile.links.github} rel="noopener"><Icon name="link" />GitHub</a></li>
+        <li><a class="sm-item" href={profile.links.linkedin} rel="noopener"><Icon name="link" />LinkedIn</a></li>
       </ul>
     </div>
   </div>
-  <div data-ai-slot="start"></div>
+  <div class="sm-ai" data-ai-slot="start"></div>
   <div class="sm-foot">
-    <button type="button" class="foot-btn" data-theme-cycle>
-      <Icon name="palette" />
-      <span>{t('start.theme')}: <span data-theme-name>{t('theme.blue')}</span></span>
-    </button>
-    <a class="foot-btn" href={`/${other}/`} hreflang={other} lang={other} aria-label={t('start.languageLabel')}>
-      <Icon name="globe" />{t('start.language')}
-    </a>
-    <a class="foot-btn classic-link" href="?view=classic"><Icon name="classic" />{t('start.classic')}</a>
+    <a class="foot-btn" href="?view=classic"><Icon name="logoff" />{t('start.classic')}</a>
+    <button type="button" class="foot-btn" data-close-all><Icon name="turnoff" />{t('start.closeAll')}</button>
   </div>
 </div>
 
@@ -168,7 +193,9 @@ const icons = { projects: 'folder', about: 'notepad', experience: 'briefcase', r
     if (!menu.hidden && !menu.contains(t) && !startBtn.contains(t)) setOpen(false, false);
   });
   menu.addEventListener('click', (e) => {
-    if ((e.target as HTMLElement).closest('[data-open]')) setOpen(false, false);
+    const el = e.target as HTMLElement;
+    if (el.closest('[data-open]')) setOpen(false, false);
+    else if (el.closest('[data-close-all]')) setOpen(false);
   });
   menu.addEventListener('focusout', (e) => {
     const next = e.relatedTarget as Node | null;
@@ -187,7 +214,10 @@ const icons = { projects: 'folder', about: 'notepad', experience: 'briefcase', r
   // Anything with data-ai-focus focuses the AI search (Start menu in desktop mode).
   document.addEventListener('click', (e) => {
     if (!(e.target as HTMLElement).closest('[data-ai-focus]')) return;
-    if (document.documentElement.classList.contains('os-ready')) setOpen(true);
+    if (document.documentElement.classList.contains('os-ready')) {
+      if (menu.hidden) setOpen(true);
+      else menu.querySelector<HTMLElement>('ai-search input')?.focus();
+    }
     else {
       document.getElementById('ask')?.scrollIntoView();
       document.querySelector<HTMLInputElement>('ai-search input')?.focus();

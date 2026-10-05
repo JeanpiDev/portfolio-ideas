@@ -1,0 +1,54 @@
+---
+/** Archive: the bottom-right desktop bin, repurposed for older work. */
+import Window from '../Window.astro';
+import Icon from '../Icon.astro';
+import ExplorerChrome from '../ExplorerChrome.astro';
+import PaneBox from '../PaneBox.astro';
+import { profile, type Lang } from '../../data/profile';
+import { useTranslations } from '../../i18n/ui';
+
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+const t = useTranslations(lang);
+---
+
+<Window id="archive" lang={lang} icon="archive" w={600} x={0.36} y={0.18}>
+  <ExplorerChrome slot="chrome" lang={lang} icon="archive" path={`${profile.firstName}OS:\\${t('win.archive')}`} />
+  <div class="explorer">
+    <aside class="task-pane" aria-label={t('explorer.tasks')}>
+      <PaneBox id="pane-archive-tasks" title={t('explorer.tasks')} primary>
+        <ul>
+          <li><a href="#win-projects" data-open="projects"><Icon name="folder" />{t('explorer.archiveTask')}</a></li>
+        </ul>
+      </PaneBox>
+      <PaneBox id="pane-archive-places" title={t('explorer.places')}>
+        <ul>
+          <li><a href="#win-about" data-open="about"><Icon name="notepad" />{t('win.about')}</a></li>
+          <li><a href="#win-contact" data-open="contact"><Icon name="mail" />{t('win.contact')}</a></li>
+        </ul>
+      </PaneBox>
+    </aside>
+    <div class="explorer-main">
+      <section class="xp-group" aria-labelledby="grp-archive">
+        <h3 class="group-head" id="grp-archive">{t('explorer.group.archive')}</h3>
+        <ul class="tiles" data-view-target data-view="tiles">
+          {
+            profile.archive.map((a) => (
+              <li class="tile tile-folder" id={`archive-${a.id}`} tabindex="-1">
+                <Icon name="folder" class="thumb" />
+                <div>
+                  <h4>{a.name[lang]}</h4>
+                  <span class="kind">{a.year}</span>
+                  <p>{a.description[lang]}</p>
+                </div>
+              </li>
+            ))
+          }
+        </ul>
+      </section>
+    </div>
+  </div>
+  <Fragment slot="status"><span>{t('explorer.items', { n: profile.archive.length })}</span></Fragment>
+</Window>

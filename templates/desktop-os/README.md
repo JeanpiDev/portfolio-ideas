@@ -2,8 +2,10 @@
 
 A portfolio that boots into **AlexOS**, a desktop inspired by the early-2000s desktop aesthetic:
 glossy blue title bars, a green start button, a rolling green hill under a blue sky, explorer
-windows and yellow balloon tips. Your sections are apps: **Projects** (a file explorer with
-filter chips), **About.txt**, **Experience**, **Resume** and **Contact**.
+windows and yellow balloon tips. Your sections are apps: **Projects** (an explorer window with
+menu bar, toolbar, address bar, collapsible task pane, filter chips and grouped items),
+**About.txt**, **Experience**, **Resume**, **Contact**, and an **Archive** bin in the bottom-right
+corner for older work.
 
 > **Alex Moreno is a fictional person.** All personal content lives in `src/data/profile.ts`.
 > Replace it with your own data before you publish.
@@ -47,6 +49,14 @@ by simple keyword matching over `profile.ts`, including a project card and a sou
 come from `profile.demoTips`. The UI shows "Demo mode — add ANTHROPIC_API_KEY for live
 answers". The response header `X-Assistant-Mode: demo|live` tells the client which mode is on.
 
+## Use your own wallpaper
+
+The default wallpaper is an original SVG landscape (`src/components/Wallpaper.astro`): a deep-blue
+sky, soft cumulus clouds and one rolling green hill. It is drawn from scratch; do not replace it
+with a copyrighted photo. To use your own image, drop a file **you have the rights to** at
+`public/wallpaper.jpg` (picked up automatically at build time), or set
+`config.wallpaper = '/my-image.webp'` in `src/config.ts`.
+
 ## Run it
 
 ```bash
@@ -79,7 +89,9 @@ The key is read with `astro:env/server` and never reaches the browser.
 | Colour schemes, chrome, layout, motion   | `src/styles/global.css` (documented at the top) |
 | Window contents                          | `src/components/windows/*.astro`         |
 | Icons (inline SVG)                       | `src/components/Icon.astro`              |
-| Wallpaper                                | `src/components/Wallpaper.astro`         |
+| Wallpaper                                | `src/components/Wallpaper.astro`, `src/config.ts` |
+| Explorer chrome / task-pane boxes        | `src/components/ExplorerChrome.astro`, `src/components/PaneBox.astro` |
+| Start menu + taskbar                     | `src/components/Taskbar.astro`           |
 | Window manager                           | `src/scripts/wm.ts`                      |
 | AI endpoint / system prompt / demo mode  | `src/pages/api/chat.ts`, `src/lib/assistant.ts` |
 | Boot + welcome screen (optional)         | `src/components/Boot.astro` (delete the `<Boot>` line in `Home.astro` to remove it) |
@@ -94,17 +106,27 @@ stored in `localStorage` (`theme`) and applied before paint (no flash):
 - **Blue** (default) · **Olive Green** · **Silver**
 
 The look does not follow `prefers-color-scheme` on purpose (it is a period design with
-`color-scheme: light`). Measured contrast (WCAG relative luminance):
+`color-scheme: light`). Measured contrast (WCAG relative luminance; for gradients, the band
+the glyphs actually sit on):
 
-| Element                                    | Blue   | Olive  | Silver |
-| ------------------------------------------ | ------ | ------ | ------ |
-| Title text on the **lightest** gradient stop | 4.89:1 (#fff on #2e6be0) | 4.88:1 (#fff on #5f7a2c) | 19.3:1 (#000 on #f4f5f8) |
-| Inactive title text                        | 7.35:1 | 6.96:1 | 7.89:1 |
-| Taskbar tab text                           | 5.48:1 | 6.07:1 | 14.75:1 |
-| Tray text (clock)                          | 5.14:1 | 4.88:1 | 14.75:1 |
+| Element                          | Blue                              | Olive                    | Silver                 |
+| -------------------------------- | --------------------------------- | ------------------------ | ---------------------- |
+| Active title text                | #fff on #0053ee–#0066ff: 6.05–4.83 | #fff on #5f7a2c–#4b6a22: 4.88–6.21 | #000 on #f0f1f5–#b4b8c8: 18.6–10.6 |
+| Inactive title text              | #0a1f5c on #b9cdf2–#9db9eb: 9.59–7.75 | #2f3f10 on #dfe5c8–#c8d3a0: ≥ 7.22 | #444 on #e6e8ee: 7.95 |
+| Taskbar button (inactive/active) | 4.68 / 7.13                       | 4.91 / 8.98              | 13.1 / 10.6            |
+| Tray clock                       | #fff on #0e74cc: 4.78             | #fff on #4b6a22: 6.21    | #000 on #dfe1e8: 16.1  |
+| Start-menu name and footer       | #fff on #0e60cb–#1e70d9: 5.91–4.80 | ≥ 4.88                  | black on light grey ≥ 13 |
+| Primary task-pane header         | #fff on #0054e3–#2f71cd: 6.22–4.81 | #fff on #4b6a22–#5c7a2e ≥ 4.91 | #2a3a6a on white ≥ 8.9 |
 
-Start button `#fff` on `#327f32` 4.98:1 · close-button glyph `#fff` on `#c4402a` 5.10:1 ·
-body text on the dialog face `#ece9d8` 17.2:1 · task-pane links 5.6:1 · balloon text 20.6:1.
+Shared: "start" label (21px bold italic, large text) #fff on #3c9a3c–#327f32 3.57–4.98 ·
+task-pane links #215dc6 on #d6dff7 4.57 · Start right column #00136b on #d3e5fa 12.5 · grey
+subtitles #555 on #fff 7.46 · body #000 on #ece9d8 17.2 · balloon #000 on #ffffe1 20.6 ·
+selection #fff on #316ac5 5.25. Desktop icon labels are white with a dark halo over the
+wallpaper and get a solid #316ac5 background when focused or selected.
+
+Where the period look and AA disagreed, AA won: inactive title bars use dark text on a lighter
+blue (the classic white-on-pale-blue fails), the inactive taskbar button blue is a touch deeper
+than the classic one, and the tray's middle band is darker than the classic light cyan.
 
 Fonts are system fonts only: `Tahoma, 'Segoe UI', Verdana, sans-serif` (nothing bundled), with
 a 12px minimum text size.
@@ -115,7 +137,14 @@ a 12px minimum text size.
 
 - Windows are **non-modal** `role="dialog"` elements labelled by their title (`aria-labelledby`).
 - Title-bar buttons are real buttons with labels ("Minimize Projects", "Maximize/Restore …",
-  "Close …"), each a 44×44px target.
+  "Close …"): 24px white-bordered rounded squares inside 44×44px hit areas.
+- Task-pane group headers are buttons with `aria-expanded`; the round double-chevron collapses
+  the group. Toolbar **Folders** (`aria-pressed`) hides/shows the task pane, **Views** switches
+  tiles/list. Back, Forward, Up, the menu bar and the address bar are decorative
+  (`aria-hidden`, not focusable).
+- Start menu: pinned items, recent projects, **All Programs** (disclosure with every window and
+  the Assistant/motion toggles), right column links, Theme / Language / Classic mode, and a footer
+  with **Classic mode** and **Close all windows**.
 - Desktop icons, Start-menu items and citations are real links (`href="#win-…"`). A single
   click, tap or Enter opens a window (double-click works too). Without JS they scroll to the
   section.
@@ -198,4 +227,6 @@ CSS/SVG). `xp.css` was not used; the chrome is written from scratch.
 ## Credits
 
 Concept by Jean Pierre Ramírez. Persona "Alex Moreno" and all companies are fictional.
-Visual style inspired by the early-2000s desktop aesthetic; all artwork is original.
+Visual style inspired by the early-2000s desktop aesthetic; all artwork (icons, wallpaper,
+logo, user tile, helper character) is original inline SVG/CSS. No vendor logos, names, sounds
+or wallpapers are included.

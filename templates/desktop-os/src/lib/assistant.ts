@@ -55,6 +55,16 @@ export function buildSources(): Source[] {
       },
     });
   }
+  for (const a of p.archive) {
+    sources.push({
+      id: `archive.${a.id}`,
+      label: { en: `Archive · ${a.name.en}`, es: `Archivo · ${a.name.es}` },
+      text: {
+        en: `${a.name.en} (${a.year}, archived): ${a.description.en}`,
+        es: `${a.name.es} (${a.year}, archivado): ${a.description.es}`,
+      },
+    });
+  }
   for (const g of p.skills) {
     sources.push({
       id: `skills.${g.id}`,
@@ -113,6 +123,7 @@ const WINDOW_NAMES: Record<WindowId, string> = {
   experience: 'Experience (work history)',
   resume: 'Resume (skills and a printable summary)',
   contact: 'Contact (email and links)',
+  archive: 'Archive (older, retired work)',
 };
 
 /** Per-request instructions, sent after the cached system block. */

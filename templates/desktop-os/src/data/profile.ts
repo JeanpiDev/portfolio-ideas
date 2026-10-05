@@ -39,6 +39,14 @@ export interface Project {
   live?: string;
 }
 
+/** Older or retired work, shown in the "Archive" desktop icon (bottom right). */
+export interface ArchiveItem {
+  id: string;
+  name: Localized;
+  year: string;
+  description: Localized;
+}
+
 export interface SkillGroup {
   id: Area;
   label: Localized;
@@ -191,6 +199,27 @@ export const profile = {
     },
   ] satisfies Project[],
 
+  archive: [
+    {
+      id: 'portfolio-v1',
+      name: { en: 'Portfolio v1', es: 'Portafolio v1' },
+      year: '2020',
+      description: {
+        en: 'The first personal site: a single static page, kept here for nostalgia.',
+        es: 'El primer sitio personal: una sola página estática, guardada por nostalgia.',
+      },
+    },
+    {
+      id: 'css-experiments',
+      name: { en: 'CSS experiments', es: 'Experimentos CSS' },
+      year: '2021',
+      description: {
+        en: 'Small layout and animation studies made while learning modern CSS.',
+        es: 'Pequeños estudios de layout y animación hechos mientras aprendía CSS moderno.',
+      },
+    },
+  ] satisfies ArchiveItem[],
+
   skills: [
     { id: 'frontend', label: { en: 'Frontend', es: 'Frontend' }, items: ['TypeScript', 'HTML & CSS', 'Web Components', 'React', 'Astro'] },
     { id: 'uiux', label: { en: 'UI/UX', es: 'UI/UX' }, items: ['Design systems', 'Accessibility (WCAG)', 'Prototyping', 'Motion design'] },
@@ -223,6 +252,11 @@ export const profile = {
       en: 'Skills are grouped into Frontend, UI/UX, Backend and AI. You can print this window as a one-page resume.',
       es: 'Las habilidades están agrupadas en Frontend, UI/UX, Backend e IA. Puedes imprimir esta ventana como CV de una página.',
       sources: ['skills.frontend', 'skills.ai'],
+    },
+    archive: {
+      en: 'The Archive keeps older work, like Alex\'s first portfolio. Newer projects live in the Projects window.',
+      es: 'El Archivo guarda trabajo antiguo, como el primer portafolio de Alex. Los proyectos recientes están en Proyectos.',
+      sources: ['archive.portfolio-v1'],
     },
     contact: {
       en: 'The fastest way to reach Alex is email. Alex works remotely in UTC-5.',

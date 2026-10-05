@@ -3,7 +3,7 @@
  * (the endpoint rejects any `context` that is not in this list).
  * Safe to import on the client and the server.
  */
-export const WINDOW_IDS = ['projects', 'about', 'experience', 'resume', 'contact'] as const;
+export const WINDOW_IDS = ['projects', 'about', 'experience', 'resume', 'contact', 'archive'] as const;
 export type WindowId = (typeof WINDOW_IDS)[number];
 
 export const isWindowId = (v: unknown): v is WindowId =>
@@ -17,6 +17,8 @@ export function sourceTarget(sourceId: string): { win: WindowId; anchor: string 
       return { win: 'projects', anchor: `project-${key}` };
     case 'experience':
       return { win: 'experience', anchor: `job-${key}` };
+    case 'archive':
+      return { win: 'archive', anchor: `archive-${key}` };
     case 'skills':
       return { win: 'resume', anchor: 'win-resume' };
     case 'profile':

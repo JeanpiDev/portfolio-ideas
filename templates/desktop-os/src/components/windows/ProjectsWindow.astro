@@ -1,7 +1,9 @@
 ---
-/** Projects: an explorer-style window (menu bar, toolbar, address bar, task pane, tiles). */
+/** Projects: an explorer window (menu bar, toolbar, address bar, task pane, grouped tiles). */
 import Window from '../Window.astro';
 import Icon from '../Icon.astro';
+import ExplorerChrome from '../ExplorerChrome.astro';
+import PaneBox from '../PaneBox.astro';
 import ProjectThumb from '../ProjectThumb.astro';
 import { profile, type Lang, type Area } from '../../data/profile';
 import { useTranslations } from '../../i18n/ui';
@@ -13,34 +15,15 @@ const { lang } = Astro.props;
 const t = useTranslations(lang);
 const areas: Area[] = ['frontend', 'uiux', 'backend', 'ai'];
 const count = profile.projects.length;
+const repos = profile.projects.filter((p) => p.repo);
 ---
 
-<Window id="projects" lang={lang} icon="folder" w={720} x={0.13} y={0.04}>
-  <Fragment slot="chrome">
-    <div class="xp-menubar" aria-hidden="true">
-      <span>{t('explorer.menu.file')}</span><span>{t('explorer.menu.edit')}</span><span>{t('explorer.menu.view')}</span><span>{t('explorer.menu.help')}</span>
-    </div>
-    <div class="xp-toolbar">
-      <span class="tool-btn" aria-disabled="true" aria-hidden="true"><Icon name="back" /></span>
-      <span class="tool-btn" aria-disabled="true" aria-hidden="true"><Icon name="forward" /></span>
-      <span class="tool-btn" aria-disabled="true" aria-hidden="true"><Icon name="up" /></span>
-      <span class="tool-sep" aria-hidden="true"></span>
-      <button type="button" class="tool-btn" data-ai-focus>
-        <Icon name="search" />
-        <Icon name="spark" class="spark" />
-        {t('explorer.search')}
-      </button>
-    </div>
-    <div class="xp-address" aria-hidden="true">
-      <span>{t('explorer.address')}</span>
-      <span class="addr"><Icon name="folder" class="w-4 h-4" />{`\\\\${profile.firstName.toLowerCase()}\\projects`}</span>
-    </div>
-  </Fragment>
+<Window id="projects" lang={lang} icon="folder" w={760} x={0.14} y={0.04}>
+  <ExplorerChrome slot="chrome" lang={lang} icon="folder" path={`${profile.firstName}OS:\\${t('win.projects')}`} />
 
   <div class="explorer">
     <aside class="task-pane" aria-label={t('explorer.tasks')}>
-      <div class="pane-box">
-        <h3>{t('explorer.tasks')}</h3>
+      <PaneBox id="pane-projects-tasks" title={t('explorer.tasks')} primary>
         <ul>
           <li>
             <a href={`mailto:${profile.email}`}><Icon name="mail" />{t('explorer.emailTask')}</a>
@@ -49,23 +32,21 @@ const count = profile.projects.length;
             <button type="button" data-ai-focus><Icon name="spark" class="spark" />{t('explorer.askTask')}</button>
           </li>
         </ul>
-      </div>
-      <div class="pane-box">
-        <h3>{t('explorer.places')}</h3>
+      </PaneBox>
+      <PaneBox id="pane-projects-places" title={t('explorer.places')}>
         <ul>
           <li><a href="#win-about" data-open="about"><Icon name="notepad" />{t('win.about')}</a></li>
           <li><a href="#win-experience" data-open="experience"><Icon name="briefcase" />{t('win.experience')}</a></li>
           <li><a href="#win-resume" data-open="resume"><Icon name="resume" />{t('win.resume')}</a></li>
-          <li><a href="#win-contact" data-open="contact"><Icon name="mail" />{t('win.contact')}</a></li>
+          <li><a href="#win-archive" data-open="archive"><Icon name="archive" />{t('win.archive')}</a></li>
         </ul>
-      </div>
-      <div class="pane-box">
-        <h3>{t('explorer.details')}</h3>
-        <p>{profile.name} · {profile.role[lang]}</p>
-      </div>
+      </PaneBox>
+      <PaneBox id="pane-projects-details" title={t('explorer.details')}>
+        <p><strong>{profile.name}</strong><br />{profile.role[lang]}</p>
+      </PaneBox>
     </aside>
 
-    <div>
+    <div class="explorer-main">
       <div class="chips js-only" role="group" aria-label={t('explorer.filter')} data-chips>
         <span class="chips-label" aria-hidden="true">{t('explorer.filter')}:</span>
         <button type="button" class="xp-btn" aria-pressed="true" data-filter="all">{t('explorer.all')}</button>
@@ -77,47 +58,64 @@ const count = profile.projects.length;
           ))
         }
       </div>
-      <ul class="tiles" data-tiles>
-        {
-          profile.projects.map((p) => (
-            <li class="tile" id={`project-${p.id}`} data-areas={p.areas.join(' ')} tabindex="-1">
-              <ProjectThumb kind={p.preview} />
-              <div>
-                <h3>{p.name[lang]}</h3>
-                <span class="kind">{p.kind[lang]}</span>
-                <p>{p.description[lang]}</p>
-                <ul class="tags">
-                  {p.tags.map((tag) => (
-                    <li>{tag}</li>
-                  ))}
-                </ul>
-                {(p.repo || p.live) && (
-                  <div class="links">
-                    {p.repo && (
-                      <a href={p.repo} rel="noopener">
-                        {t('explorer.repo')}
-                        <span class="sr-only"> — {p.name[lang]}</span>
-                      </a>
-                    )}
-                    {p.live && (
+
+      <section class="xp-group" aria-labelledby="grp-projects">
+        <h3 class="group-head" id="grp-projects">{t('explorer.group.projects')}</h3>
+        <ul class="tiles" data-tiles data-view-target data-view="tiles">
+          {
+            profile.projects.map((p) => (
+              <li class="tile" id={`project-${p.id}`} data-areas={p.areas.join(' ')} tabindex="-1">
+                <ProjectThumb kind={p.preview} />
+                <div>
+                  <h4>{p.name[lang]}</h4>
+                  <span class="kind">{p.kind[lang]}</span>
+                  <p>{p.description[lang]}</p>
+                  <ul class="tags">
+                    {p.tags.map((tag) => (
+                      <li>{tag}</li>
+                    ))}
+                  </ul>
+                  {p.live && (
+                    <div class="links">
                       <a href={p.live} rel="noopener">
                         {t('explorer.live')}
                         <span class="sr-only"> — {p.name[lang]}</span>
                       </a>
-                    )}
-                  </div>
-                )}
-              </div>
-            </li>
-          ))
-        }
-      </ul>
+                    </div>
+                  )}
+                </div>
+              </li>
+            ))
+          }
+        </ul>
+      </section>
+
+      {
+        repos.length > 0 && (
+          <section class="xp-group" aria-labelledby="grp-repos">
+            <h3 class="group-head" id="grp-repos">{t('explorer.group.repos')}</h3>
+            <ul class="drives">
+              {repos.map((p) => (
+                <li>
+                  <a class="drive" href={p.repo} rel="noopener">
+                    <Icon name="drive" />
+                    <span>
+                      {p.name[lang]}
+                      <span class="drive-sub">{t('explorer.repo')}</span>
+                    </span>
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )
+      }
     </div>
   </div>
 
   <Fragment slot="status">
     <span data-count aria-live="polite">{t('explorer.items', { n: count })}</span>
-    <span>{t('win.keys')}</span>
+    <span class="status-tip">{t('win.keys')}</span>
   </Fragment>
 </Window>
 

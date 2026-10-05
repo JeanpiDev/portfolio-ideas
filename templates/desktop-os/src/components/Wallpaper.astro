@@ -1,44 +1,127 @@
 ---
 /**
- * Original wallpaper: a green rolling hill under a blue sky with soft clouds, drawn in SVG.
- * (Evokes the early-2000s look; it is not based on, or traced from, any photograph.)
+ * Desktop wallpaper: an original SVG landscape (deep-blue sky, layered cumulus clouds and a
+ * single rolling green hill). It is drawn from scratch and is not based on, or traced from,
+ * any photograph.
+ *
+ * Use your own: put an image you have the rights to at public/wallpaper.jpg, or set
+ * `config.wallpaper` in src/config.ts.
  */
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
+import { config } from '../config';
+
+const custom =
+  config.wallpaper || (existsSync(join(process.cwd(), 'public', 'wallpaper.jpg')) ? '/wallpaper.jpg' : '');
+
+// Cumulus clusters: [cx, cy, scale]. Each cluster is a few overlapping puffs.
+const clusters: [number, number, number][] = [
+  [250, 210, 1.1],
+  [1180, 120, 1.3],
+  [1460, 360, 0.9],
+  [780, 330, 0.75],
+  [560, 120, 0.6],
+  [1020, 420, 0.7],
+];
+const puffs = [
+  [0, 0, 70, 46],
+  [-70, 14, 56, 34],
+  [72, 12, 60, 36],
+  [-20, -26, 52, 40],
+  [34, -20, 46, 36],
+  [-120, 26, 40, 22],
+  [120, 26, 44, 22],
+];
 ---
 
-<svg class="wallpaper" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
-  <defs>
-    <linearGradient id="wp-sky" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#1b5cc2"></stop>
-      <stop offset="0.45" stop-color="#4a8fe6"></stop>
-      <stop offset="0.7" stop-color="#9cc7f5"></stop>
-    </linearGradient>
-    <linearGradient id="wp-hill" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#7cc84a"></stop>
-      <stop offset="0.35" stop-color="#4fa22e"></stop>
-      <stop offset="1" stop-color="#2b6d1a"></stop>
-    </linearGradient>
-    <linearGradient id="wp-hill-back" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#5aa53a"></stop>
-      <stop offset="1" stop-color="#2f7a22"></stop>
-    </linearGradient>
-    <radialGradient id="wp-shine" cx="0.38" cy="0.62" r="0.3">
-      <stop offset="0" stop-color="#c8f08a" stop-opacity="0.55"></stop>
-      <stop offset="1" stop-color="#c8f08a" stop-opacity="0"></stop>
-    </radialGradient>
-    <filter id="wp-blur" x="-20%" y="-50%" width="140%" height="200%">
-      <feGaussianBlur stdDeviation="16"></feGaussianBlur>
-    </filter>
-  </defs>
-  <rect width="1600" height="1000" fill="url(#wp-sky)"></rect>
-  <g fill="#fff" filter="url(#wp-blur)" opacity="0.85">
-    <ellipse cx="300" cy="190" rx="170" ry="38"></ellipse>
-    <ellipse cx="420" cy="170" rx="110" ry="44"></ellipse>
-    <ellipse cx="1050" cy="120" rx="210" ry="40"></ellipse>
-    <ellipse cx="1180" cy="100" rx="120" ry="46"></ellipse>
-    <ellipse cx="1380" cy="330" rx="150" ry="30"></ellipse>
-    <ellipse cx="760" cy="300" rx="120" ry="24" opacity="0.7"></ellipse>
-  </g>
-  <path d="M0 700 C 300 600, 520 640, 800 660 S 1300 600, 1600 640 V1000 H0 Z" fill="url(#wp-hill-back)"></path>
-  <path d="M0 760 C 220 640, 520 560, 760 590 C 1000 620, 1260 720, 1600 700 V1000 H0 Z" fill="url(#wp-hill)"></path>
-  <rect width="1600" height="1000" fill="url(#wp-shine)"></rect>
-</svg>
+{
+  custom ? (
+    <img class="wallpaper wallpaper-img" src={custom} alt="" decoding="async" />
+  ) : (
+    <svg class="wallpaper" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
+      <defs>
+        <linearGradient id="wp-sky" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#0838b0" />
+          <stop offset="0.28" stop-color="#1157d9" />
+          <stop offset="0.5" stop-color="#2f7de9" />
+          <stop offset="0.66" stop-color="#6fb0f2" />
+          <stop offset="0.74" stop-color="#b4d8f8" />
+        </linearGradient>
+        <radialGradient id="wp-haze" cx="0.75" cy="0.7" r="0.5">
+          <stop offset="0" stop-color="#ffffff" stop-opacity="0.45" />
+          <stop offset="1" stop-color="#ffffff" stop-opacity="0" />
+        </radialGradient>
+        <linearGradient id="wp-hill" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#a6e256" />
+          <stop offset="0.12" stop-color="#7cc93a" />
+          <stop offset="0.35" stop-color="#4fa823" />
+          <stop offset="0.7" stop-color="#2f8414" />
+          <stop offset="1" stop-color="#1f5e0b" />
+        </linearGradient>
+        <radialGradient id="wp-sun" cx="0.36" cy="0.08" r="0.42">
+          <stop offset="0" stop-color="#d8f590" stop-opacity="0.75" />
+          <stop offset="1" stop-color="#d8f590" stop-opacity="0" />
+        </radialGradient>
+        <linearGradient id="wp-shade" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0.5" stop-color="#0b3a05" stop-opacity="0" />
+          <stop offset="1" stop-color="#0b3a05" stop-opacity="0.28" />
+        </linearGradient>
+        <linearGradient id="wp-cloud" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#ffffff" />
+          <stop offset="0.6" stop-color="#f4f8fd" />
+          <stop offset="1" stop-color="#c9dbf0" />
+        </linearGradient>
+        <filter id="wp-fluff" x="-30%" y="-60%" width="160%" height="220%">
+          <feTurbulence type="fractalNoise" baseFrequency="0.018" numOctaves="4" seed="7" result="noise" />
+          <feDisplacementMap in="SourceGraphic" in2="noise" scale="38" xChannelSelector="R" yChannelSelector="G" result="d" />
+          <feGaussianBlur in="d" stdDeviation="4" />
+        </filter>
+        <filter id="wp-wisp" x="-30%" y="-200%" width="160%" height="500%">
+          <feGaussianBlur stdDeviation="14 5" />
+        </filter>
+        <filter id="wp-grass" x="0" y="0" width="100%" height="100%">
+          <feTurbulence type="fractalNoise" baseFrequency="0.9 0.08" numOctaves="2" seed="3" />
+          <feColorMatrix values="0 0 0 0 0.05  0 0 0 0 0.25  0 0 0 0 0.02  0 0 0 0.35 0" />
+          <feComposite in2="SourceGraphic" operator="in" />
+        </filter>
+        <clipPath id="wp-hill-clip">
+          <path d="M0 640 C 180 600, 380 548, 600 536 C 820 524, 1040 560, 1260 610 C 1400 642, 1520 660, 1600 668 V1000 H0 Z" />
+        </clipPath>
+      </defs>
+
+      <rect width="1600" height="1000" fill="url(#wp-sky)" />
+      <rect width="1600" height="1000" fill="url(#wp-haze)" />
+
+      <g fill="#ffffff" filter="url(#wp-wisp)" opacity="0.55">
+        <ellipse cx="420" cy="90" rx="200" ry="10" transform="rotate(-8 420 90)" />
+        <ellipse cx="1350" cy="230" rx="160" ry="8" transform="rotate(6 1350 230)" />
+        <ellipse cx="900" cy="230" rx="120" ry="6" />
+      </g>
+
+      <g filter="url(#wp-fluff)">
+        {
+          clusters.map(([cx, cy, k]) => (
+            <g transform={`translate(${cx} ${cy}) scale(${k})`}>
+              {puffs.map(([x, y, rx, ry]) => (
+                <ellipse cx={x} cy={y + 10} rx={rx} ry={ry * 0.8} fill="#b9cfe9" />
+              ))}
+              {puffs.map(([x, y, rx, ry]) => (
+                <ellipse cx={x} cy={y} rx={rx} ry={ry} fill="url(#wp-cloud)" />
+              ))}
+            </g>
+          ))
+        }
+      </g>
+
+      <path d="M900 640 C 1100 610, 1350 600, 1600 612 V700 H900 Z" fill="#6f9fd8" opacity="0.35" />
+
+      <g clip-path="url(#wp-hill-clip)">
+        <rect y="520" width="1600" height="480" fill="url(#wp-hill)" />
+        <rect y="520" width="1600" height="480" fill="url(#wp-sun)" />
+        <rect y="520" width="1600" height="480" fill="url(#wp-shade)" />
+        <rect y="520" width="1600" height="480" fill="#000" filter="url(#wp-grass)" />
+        <path d="M0 1000 C 300 860, 700 820, 1600 900 V1000Z" fill="#163f07" opacity="0.25" />
+      </g>
+    </svg>
+  )
+}

@@ -15,6 +15,8 @@ import AboutWindow from './windows/AboutWindow.astro';
 import ExperienceWindow from './windows/ExperienceWindow.astro';
 import ResumeWindow from './windows/ResumeWindow.astro';
 import ContactWindow from './windows/ContactWindow.astro';
+import ArchiveWindow from './windows/ArchiveWindow.astro';
+import IconDefs from './IconDefs.astro';
 import { profile, type Lang } from '../data/profile';
 import { languages, useTranslations } from '../i18n/ui';
 import { WINDOW_IDS } from '../lib/windows';
@@ -25,10 +27,11 @@ interface Props {
 const { lang } = Astro.props;
 const t = useTranslations(lang);
 const other: Lang = lang === 'en' ? 'es' : 'en';
-const icons = { projects: 'folder', about: 'notepad', experience: 'briefcase', resume: 'resume', contact: 'mail' } as const;
+const icons = { projects: 'folder', about: 'notepad', experience: 'briefcase', resume: 'resume', contact: 'mail', archive: 'archive' } as const;
 ---
 
 <Base lang={lang}>
+  <IconDefs />
   <a class="skip-link" href="#content">{t('skip.content')}</a>
   <a class="skip-link skip-classic" href="?view=classic#content">{t('skip.classic')}</a>
 
@@ -67,7 +70,7 @@ const icons = { projects: 'folder', about: 'notepad', experience: 'briefcase', r
         <ul>
           {
             WINDOW_IDS.map((id) => (
-              <li>
+              <li class={id === 'archive' ? 'desk-archive' : undefined}>
                 <a class="desk-icon" href={`#win-${id}`} data-open={id}>
                   <Icon name={icons[id]} />
                   <span class="desk-label">{t(`win.${id}`)}</span>
@@ -84,6 +87,7 @@ const icons = { projects: 'folder', about: 'notepad', experience: 'briefcase', r
         <ExperienceWindow lang={lang} />
         <ResumeWindow lang={lang} />
         <ContactWindow lang={lang} />
+        <ArchiveWindow lang={lang} />
       </main>
     </window-manager>
 

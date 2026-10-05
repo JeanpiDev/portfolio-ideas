@@ -1,0 +1,81 @@
+---
+/**
+ * Explorer chrome: menu bar, standard toolbar and address bar. Purely visual parts are
+ * aria-hidden and not focusable; the working buttons (Search, Folders, Views) are real buttons.
+ */
+import Icon from './Icon.astro';
+import { useTranslations } from '../i18n/ui';
+import type { Lang } from '../data/profile';
+
+interface Props {
+  lang: Lang;
+  path: string;
+  icon: 'folder' | 'archive';
+  /** Show the Views toggle (tiles / list) for the content with data-view-target. */
+  views?: boolean;
+}
+const { lang, path, icon, views = true } = Astro.props;
+const t = useTranslations(lang);
+---
+
+<div class="xp-menubar" aria-hidden="true">
+  <span>{t('explorer.menu.file')}</span><span>{t('explorer.menu.edit')}</span><span>{t('explorer.menu.view')}</span><span
+    >{t('explorer.menu.favorites')}</span
+  ><span>{t('explorer.menu.tools')}</span><span>{t('explorer.menu.help')}</span>
+  <span class="menubar-logo"><Icon name="logo" /></span>
+</div>
+<div class="xp-toolbar">
+  <span class="tool-btn is-disabled" aria-hidden="true"><Icon name="back" class="tool-round" />{t('explorer.back')}<Icon name="dropdown" class="tool-drop" /></span>
+  <span class="tool-btn is-disabled" aria-hidden="true"><Icon name="forward" class="tool-round" /><Icon name="dropdown" class="tool-drop" /></span>
+  <span class="tool-btn" aria-hidden="true"><Icon name="up" /></span>
+  <span class="tool-sep" aria-hidden="true"></span>
+  <button type="button" class="tool-btn" data-ai-focus>
+    <Icon name="search" /><Icon name="spark" class="spark tool-spark" />{t('explorer.search')}
+  </button>
+  <button type="button" class="tool-btn" data-folders-toggle aria-pressed="true">
+    <Icon name="folders" />{t('explorer.folders')}
+  </button>
+  {
+    views && (
+      <>
+        <span class="tool-sep" aria-hidden="true" />
+        <button type="button" class="tool-btn" data-views-toggle aria-label={t('explorer.viewsTiles')}>
+          <Icon name="views" />
+          <Icon name="dropdown" class="tool-drop" />
+        </button>
+      </>
+    )
+  }
+</div>
+<div class="xp-address" aria-hidden="true">
+  <span class="addr-label">{t('explorer.address')}</span>
+  <span class="addr"><Icon name={icon} class="addr-icon" /><span class="addr-text">{path}</span><span class="addr-drop"><Icon name="dropdown" /></span></span>
+  <span class="addr-go"><Icon name="go" />{t('explorer.go')}</span>
+</div>
+
+<script>
+  import { strings } from '../scripts/client';
+
+  // Folders: show/hide the task pane. Views: tiles <-> list.
+  document.addEventListener('click', (e) => {
+    const t = e.target as HTMLElement;
+    const folders = t.closest<HTMLButtonElement>('[data-folders-toggle]');
+    if (folders) {
+      const win = folders.closest('.win');
+      const on = folders.getAttribute('aria-pressed') !== 'true';
+      folders.setAttribute('aria-pressed', String(on));
+      win?.querySelector('.explorer')?.classList.toggle('no-pane', !on);
+      return;
+    }
+    const views = t.closest<HTMLButtonElement>('[data-views-toggle]');
+    if (views) {
+      const win = views.closest('.win');
+      const s = strings();
+      win?.querySelectorAll<HTMLElement>('[data-view-target]').forEach((el) => {
+        const list = el.dataset.view !== 'list';
+        el.dataset.view = list ? 'list' : 'tiles';
+        views.setAttribute('aria-label', list ? s['explorer.viewsList'] : s['explorer.viewsTiles']);
+      });
+    }
+  });
+</script>
