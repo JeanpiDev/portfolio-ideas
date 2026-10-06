@@ -89,6 +89,8 @@ export function createPhysics(width: number, height: number, items: PhysItem[], 
 
   return {
     add(it: PhysItem) {
+      // Also track it in the list that is synced every step (otherwise its node never moves).
+      if (!items.includes(it)) items.push(it);
       addBody(it);
       wake();
     },
